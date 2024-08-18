@@ -3,10 +3,6 @@
 #include "esphome/core/helpers.h"  // для использования вспомогательных функция работ со строками
 
 
-
-
-
-
 namespace esphome {
 namespace bus_t4 {
 
