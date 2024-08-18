@@ -68,7 +68,7 @@ void NiceBusT4::setup() {
 
 
   //_uart =  uart_init(_UART_NO, BAUD_WORK, SERIAL_8N1, SERIAL_FULL, TX_P, 256, false);
-  _uart =  begin(BAUD_WORK, SERIAL_8N1, RX_P, TX_P, false, 256);
+  _uart =  HardwareSerial::begin(BAUD_WORK, SERIAL_8N1, RX_P, TX_P, false, 256);
   // кто в сети?
 //  this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
   
