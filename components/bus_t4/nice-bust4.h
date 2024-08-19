@@ -2,6 +2,7 @@
 
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
+#include "esphome/components/cover/cover.h"
 
 namespace esphome {
 namespace empty_uart_component {
