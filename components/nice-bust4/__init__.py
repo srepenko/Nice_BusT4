@@ -10,15 +10,15 @@ CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
 nice_bust4_ns = cg.esphome_ns.namespace("nice_bust4")
-NICE_BUST4Component = nice_bust4_ns.class_('NICE_BUST4Component', cg.PollingComponent)
+NiceBusT4Component = nice_bust4_ns.class_('NiceBusT4Component', cg.PollingComponent)
 MULTI_CONF = True
 
-NICE_BUST4 = nice_bust4_ns.class_(
-    "NICE_BUST4", cg.Component, uart.UARTDevice
+NiceBusT4 = nice_bust4_ns.class_(
+    "NiceBusT4", cg.Component, uart.UARTDevice
 )
 
 CONFIG_SCHEMA = cv.All(
-    cv.Schema({cv.GenerateID(): cv.declare_id(NICE_BUST4)})
+    cv.Schema({cv.GenerateID(): cv.declare_id(NiceBusT4)})
     .extend(cv.polling_component_schema("1000ms"))
     .extend(uart.UART_DEVICE_SCHEMA)
 )
