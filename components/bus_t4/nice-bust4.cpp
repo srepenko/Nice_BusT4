@@ -816,7 +816,6 @@ ESP_LOGW(TAG, "dump_config");
   std::string dsc_str(this->description_.begin(), this->description_.end());
   ESP_LOGCONFIG(TAG, "  Описание привода: %S ", dsc_str.c_str());
 
-
   ESP_LOGCONFIG(TAG, "  Адрес шлюза: 0x%02X%02X", addr_from[0], addr_from[1]);
   ESP_LOGCONFIG(TAG, "  Адрес привода: 0x%02X%02X", addr_to[0], addr_to[1]);
   ESP_LOGCONFIG(TAG, "  Адрес приёмника: 0x%02X%02X", addr_oxi[0], addr_oxi[1]);
