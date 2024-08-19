@@ -9,9 +9,9 @@ CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
 niceBusT4_ns = cg.esphome_ns.namespace("niceBusT4")
-#InverterComponent = inverter_ns.class_("Inverter", cg.Component)
+NiceBusT4Component = niceBusT4_ns.class_("NiceBusT4", cg.Component)
 NiceBusT4 = niceBusT4_ns.class_(
-    "NiceBusT4_component", cg.Component, uart.UARTDevice
+    "NiceBusT4", cg.Component, uart.UARTDevice
 )
 
 CONFIG_SCHEMA = (
