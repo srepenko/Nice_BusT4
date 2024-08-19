@@ -41,6 +41,31 @@ web_server:
 #  js_url: ""
 #  version: 2  
 # Enable Home Assistant API
+ota:
+  - platform: esphome # Для ESPHOME 2024.6.1
+
+# Set statul led for Wemos D1 mini
+status_led:
+  pin: 
+    number: D4
+    inverted: true
+  
+wifi:
+  ssid: !secret wifi_ssid
+  password:  !secret wifi_password
+      
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    password: !secret ota_pass
+
+captive_portal:
+
+
+web_server:
+  port: 80
+#  js_include: "www.js"
+#  js_url: ""
+#  version: 2  
 
 uart:
   id: uart_0
@@ -100,34 +125,6 @@ api:
     then:
       lambda: |-
          nice_cover -> NiceBusT4::set_mcu("4a", force);
-
-  
-ota:
-  - platform: esphome # Для ESPHOME 2024.6.1
-
-# Set statul led for Wemos D1 mini
-status_led:
-  pin: 
-    number: D4
-    inverted: true
-  
-wifi:
-  ssid: !secret wifi_ssid
-  password:  !secret wifi_password
-      
-  
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
-  ap:
-    password: !secret ota_pass
-
-captive_portal:
-
-
-web_server:
-  port: 80
-#  js_include: "www.js"
-#  js_url: ""
-#  version: 2  
 
 # Кнопки для отправки команд
 button:
