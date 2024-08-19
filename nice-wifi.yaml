@@ -43,12 +43,6 @@ web_server:
 # Enable Home Assistant API
 ota:
   - platform: esphome # Для ESPHOME 2024.6.1
-
-# Set statul led for Wemos D1 mini
-status_led:
-  pin: 
-    number: D4
-    inverted: true
   
 wifi:
   ssid: !secret wifi_ssid
@@ -71,7 +65,13 @@ uart:
   baud_rate: 19200
   tx_pin: GPIO21
   rx_pin: GPIO20
-  
+
+# Set statul led for Wemos D1 mini
+status_led:
+  pin: 
+    number: D4
+    inverted: true
+
 # Enable Home Assistant API
 api:
 #  reboot_timeout: 0s # иначе перезагружается при отключении от hassio  
