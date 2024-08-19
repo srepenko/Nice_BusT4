@@ -1,5 +1,5 @@
 #include "esphome/core/log.h"
-#include "empty_uart_component.h"
+#include "nice-bust4.h"
 
 namespace esphome {
 namespace empty_uart_component {
