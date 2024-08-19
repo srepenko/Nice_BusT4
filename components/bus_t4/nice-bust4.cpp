@@ -3,11 +3,6 @@
 #include "esphome/core/helpers.h"  // для использования вспомогательных функция работ со строками
 #include "esphome/components/uart/uart.h"
 
-
-
-
-
-
 namespace esphome {
 namespace bus_t4 {
 
@@ -15,16 +10,12 @@ static const char *TAG = "bus_t4.cover";
 
 using namespace esphome::cover;
 
-
-
-
 CoverTraits NiceBusT4::get_traits() {
   auto traits = CoverTraits();
   traits.set_supports_position(true);
   traits.set_supports_stop(true);
   return traits;
 }
-
 
 /*
   дампы команд OVIEW
@@ -39,8 +30,6 @@ CoverTraits NiceBusT4::get_traits() {
 
 
 */
-
-
 
 void NiceBusT4::control(const CoverCall &call) {
   if (call.get_stop()) {
@@ -907,6 +896,12 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   //uart_flush(_uart);                                               // очищаем uart
   this->flush();
   //uart_set_baudrate(_uart, BAUD_BREAK);                            // занижаем бодрэйт
+  uint32_t 	baud_rate = 0;
+  uint8_t 	stop_bits = 0;
+  UARTParityOptions 	parity = 0;
+  uint8_t 	data_bits = 0;
+  this->check_uart_settings(baud_rate, stop_bits, parity, data_bits);
+  ESP_LOGW(TAG, "Serial setting: %d", baud_rate);
   this->parent_->set_baud_rate(BAUD_BREAK);
   //uart_write(_uart, &br_ch, 1);                                    // отправляем ноль на низкой скорости, длиинный ноль
   this->write_byte(br_ch);
