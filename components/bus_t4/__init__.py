@@ -8,8 +8,16 @@ DEPENDENCIES = ["uart"]
 CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
+CONF_NiceBusT4_ID = "niceBusT4_id"
+
 niceBusT4_ns = cg.esphome_ns.namespace("niceBusT4")
 NiceBusT4Component = niceBusT4_ns.class_("NiceBusT4", cg.Component)
+
+NiceBusT4_COMPONENT_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_NiceBusT4_ID): cv.use_id(NiceBusT4Component),
+    }
+)
 
 NiceBusT4 = niceBusT4_ns.class_(
     "NiceBusT4", cg.Component, uart.UARTDevice
