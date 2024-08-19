@@ -898,12 +898,12 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   this->parent_->load_settings(false);
   //this->check_uart_settings(BAUD_BREAK, 1, uart::UART_CONFIG_PARITY_NONE, 8);
   //uart_write(_uart, &br_ch, 1);                                    // отправляем ноль на низкой скорости, длиинный ноль
-  this->write_byte(br_ch);
+  //this->write_byte(br_ch);
   delayMicroseconds(90);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
   this->parent_->set_baud_rate(BAUD_WORK);
   this->parent_->load_settings(false);
   //this->check_uart_settings(BAUD_WORK, 1, uart::UART_CONFIG_PARITY_NONE, 8);
-  this->write_array(data, len);
+  //this->write_array(data, len);
   //uart_write(_uart, (char *)raw_cmd_buf, sizeof(raw_cmd_buf));
   //uart_wait_tx_empty(_uart);                                       // ждем завершения отправки
 
