@@ -77,6 +77,7 @@ void NiceBusT4::loop() {
       ESP_LOGW(TAG, "Device not anailable")
     }
     this->last_update_ = millis();
+    return;
   }
 /*
     if ((millis() - this->last_update_) > 10000) {    // каждые 10 секунд
