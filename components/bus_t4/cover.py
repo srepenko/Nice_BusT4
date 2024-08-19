@@ -2,7 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import cover
 from esphome.components import uart
-from esphome.const import CONF_ADDRESS, CONF_ID, CONF_UPDATE_INTERVAL, CONF_USE_ADDRESS
+from esphome.const import CONF_ADDRESS, CONF_ID, CONF_UPDATE_INTERVAL, CONF_USE_ADDRESS, CONF_UART_ID
 
 
 
@@ -14,6 +14,7 @@ CONFIG_SCHEMA = cover.COVER_SCHEMA.extend({
     cv.Optional(CONF_ADDRESS): cv.hex_uint16_t,
     cv.Optional(CONF_USE_ADDRESS): cv.hex_uint16_t,
 #    cv.Optional(CONF_UPDATE_INTERVAL): cv.positive_time_period_milliseconds,
+    cv.Optional(CONF_UART_ID): cv.declare_id(),
 }).extend(cv.COMPONENT_SCHEMA)
 
 
@@ -21,7 +22,7 @@ def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     yield cg.register_component(var, config)
     yield uart.register_uart_device(var, config)
-    
+
     yield cover.register_cover(var, config)
 
     if CONF_ADDRESS in config:
