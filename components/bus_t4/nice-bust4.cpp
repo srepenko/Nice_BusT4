@@ -113,7 +113,7 @@ void NiceBusT4::loop() {
   //while (uart_rx_available(_uart) > 0) {
   while (this->available() > 0) {
     uint8_t c = 0;//(uint8_t)uart_read_char(_uart);                // считываем байт
-    this->read_byte((uint8_t)c);
+    this->read_byte(c);
     this->handle_char_(c);                                     // отправляем байт на обработку
     this->last_uart_byte_ = now;
   } //while
