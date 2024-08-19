@@ -72,14 +72,14 @@ void NiceBusT4::setup() {
 }
 
 void NiceBusT4::loop() {
-  if (this->init_ok == false || (millis() - this->last_update_) > 10000) {
+  //if (this->init_ok == false || (millis() - this->last_update_) > 10000) {
     if ((millis() - this->last_update_) > 10000) {
-      ESP_LOGW(TAG, "Device not anailable");
       std::vector<uint8_t> unknown = {0x55, 0x55};
       if (this->init_ok == false) {
+          ESP_LOGW(TAG, "Device not anailable");
           this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
           this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00)); //запрос продукта
-          return;
+          //return;
       } else if (this->class_gate_ == 0x55) {
 		      init_device(this->addr_to[0], this->addr_to[1], 0x04);  
 	        // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
@@ -91,7 +91,7 @@ void NiceBusT4::loop() {
       }
       this->last_update_ = millis();
     }
-  }
+  //}
 
 
 /*	
