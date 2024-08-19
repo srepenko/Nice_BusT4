@@ -772,8 +772,9 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
 
 
 void NiceBusT4::dump_config() {    //  добавляем в  лог информацию о подключенном контроллере
+/*
   ESP_LOGCONFIG(TAG, "  Bus T4 Cover");
-  /*ESP_LOGCONFIG(TAG, "  Address: 0x%02X%02X", *this->header_[1], *this->header_[2]);*/
+  //ESP_LOGCONFIG(TAG, "  Address: 0x%02X%02X", *this->header_[1], *this->header_[2]);
   switch (this->class_gate_) {
     case SLIDING:
       ESP_LOGCONFIG(TAG, "  Тип: Откатные ворота");
@@ -834,7 +835,7 @@ void NiceBusT4::dump_config() {    //  добавляем в  лог инфор�
   ESP_LOGCONFIG(TAG, "  Автозакрытие - L1: %S ", autocls_flag ? "Да" : "Нет");
   ESP_LOGCONFIG(TAG, "  Закрыть после фото - L2: %S ", photocls_flag ? "Да" : "Нет");
   ESP_LOGCONFIG(TAG, "  Всегда закрывать - L3: %S ", alwayscls_flag ? "Да" : "Нет");
-  
+  */
 }
 
 
