@@ -102,11 +102,6 @@ void NiceBusT4::loop() {
 
 
 
-
-
-
-
-
   // разрешаем отправку каждые 100 ms
   const uint32_t now = millis();
   if (now - this->last_uart_byte_ > 100) {
@@ -118,7 +113,7 @@ void NiceBusT4::loop() {
   //while (uart_rx_available(_uart) > 0) {
   while (this->available() > 0) {
     uint8_t c = 0;//(uint8_t)uart_read_char(_uart);                // считываем байт
-    this->read_array(c, 1);
+    this->read_byte(c);
     this->handle_char_(c);                                     // отправляем байт на обработку
     this->last_uart_byte_ = now;
   } //while
