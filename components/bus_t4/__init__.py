@@ -8,13 +8,14 @@ DEPENDENCIES = ["uart"]
 CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
-niceBusT4_component_ns = cg.esphome_ns.namespace("niceBusT4")
-NiceBusT4_component = niceBusT4_component_ns.class_(
+niceBusT4_ns = cg.esphome_ns.namespace("niceBusT4")
+#InverterComponent = inverter_ns.class_("Inverter", cg.Component)
+NiceBusT4 = niceBusT4_ns.class_(
     "NiceBusT4_component", cg.Component, uart.UARTDevice
 )
 
 CONFIG_SCHEMA = (
-    cv.Schema({cv.GenerateID(): cv.declare_id(NiceBusT4_component)})
+    cv.Schema({cv.GenerateID(): cv.declare_id(NiceBusT4)})
     .extend(cv.COMPONENT_SCHEMA)
     .extend(uart.UART_DEVICE_SCHEMA)
 )
