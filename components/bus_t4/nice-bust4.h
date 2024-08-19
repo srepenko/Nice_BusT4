@@ -48,6 +48,7 @@ BusT4                       ESP8266
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"           // для добавления Action
 #include "esphome/components/cover/cover.h"
+#include "esphome/components/uart/uart.h"
 //#include <HardwareSerial.h>
 #include "esphome/core/helpers.h"              // парсим строки встроенными инструментами
 #include <queue>                               // для работы с очередью
