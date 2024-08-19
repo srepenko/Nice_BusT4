@@ -48,7 +48,7 @@ BusT4                       ESP8266
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"           // для добавления Action
 #include "esphome/components/cover/cover.h"
-#include <HardwareSerial.h>
+//#include <HardwareSerial.h>
 #include "esphome/core/helpers.h"              // парсим строки встроенными инструментами
 #include <queue>                               // для работы с очередью
 
@@ -423,7 +423,7 @@ class NiceBusT4 : public Component, public Cover {
 	
     // переменные для uart
     uint8_t _uart_nr;
-    uart_t* _uart = nullptr;
+    //uart_t* _uart = nullptr;
     uint16_t _max_opn = 0;  // максимальная позиция энкодера или таймера
     uint16_t _pos_opn = 2048;  // позиция открытия энкодера или таймера, не для всех приводов.
     uint16_t _pos_cls = 0;  // позиция закрытия энкодера или таймера, не для всех приводов
