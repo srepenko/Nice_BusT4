@@ -69,7 +69,7 @@ uart:
 # Set statul led for Wemos D1 mini
 status_led:
   pin: 
-    number: D4
+    number: GPIO8
     inverted: true
 
 # Enable Home Assistant API
