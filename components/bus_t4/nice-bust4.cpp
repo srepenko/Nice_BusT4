@@ -108,7 +108,6 @@ void NiceBusT4::loop() {
     this->last_uart_byte_ = now;
   } //while
 
-/*	
   if (this->ready_to_tx_) {   // если можно отправлять
     if (!this->tx_buffer_.empty()) {  // если есть что отправлять
       this->send_array_cmd(this->tx_buffer_.front()); // отправляем первую команду в очереди
@@ -126,7 +125,7 @@ void NiceBusT4::loop() {
     request_position();
   } 
   } // not robus
-*/
+
 } //loop
 
 
