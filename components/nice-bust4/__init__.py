@@ -9,7 +9,7 @@ AUTO_LOAD = ['uart', 'cover']
 CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
-nice_bust4_ns = cg.esphome_ns.namespace("nice-bust4")
+nice_bust4_ns = cg.esphome_ns.namespace("nice_bust4")
 NICE_BUST4Component = nice_bust4_ns.class_('NICE_BUST4Component', cg.PollingComponent)
 MULTI_CONF = True
 
