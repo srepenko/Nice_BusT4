@@ -60,7 +60,7 @@ namespace bus_t4 {
 
 /* для короткого обращения к членам класса */
 using namespace esphome::cover;
-using namespace bus_t4::uart;
+
 //using esp8266::timeoutTemplate::oneShotMs;
 
 static const int _UART_NO=0; /* номер uart */
