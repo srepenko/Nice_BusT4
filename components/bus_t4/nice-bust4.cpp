@@ -71,7 +71,7 @@ void NiceBusT4::setup() {
   //_uart_nr(uart_nr), _uart(NULL), _rxBufferSize(256), _txBufferSize(0), _onReceiveCB(NULL), 
   //_onReceiveErrorCB(NULL), _onReceiveTimeout(false), _rxTimeout(1),
   //_rxFIFOFull(0), _eventTask(NULL)
-  _uart = uartBegin(_UART_NO, BAUD_WORK, SERIAL_8N1, RX_P, TX_P, 256, 0, false, 0);
+  //_uart = uartBegin(_UART_NO, BAUD_WORK, SERIAL_8N1, RX_P, TX_P, 256, 0, false, 0);
 
   // кто в сети?
 //  this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
@@ -113,9 +113,9 @@ void NiceBusT4::loop() {
 
 
   //while (uart_rx_available(_uart) > 0) {
-  while (uartAvailable(_uart) > 0) {
+  while (this->available()) {
     uint8_t c = 0;//(uint8_t)uart_read_char(_uart);                // считываем байт
-    uartReadBytes(_uart, &c, 1, 0);
+    this->read_byte(&c);
     this->handle_char_(c);                                     // отправляем байт на обработку
     this->last_uart_byte_ = now;
   } //while
