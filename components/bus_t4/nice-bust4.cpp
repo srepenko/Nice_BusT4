@@ -898,7 +898,7 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   //uart_set_baudrate(_uart, BAUD_BREAK);                            // занижаем бодрэйт
   uint32_t 	baud_rate = 0;
   uint8_t 	stop_bits = 0;
-  uart::UARTParityOptions 	parity = 0;
+  uart::UARTParityOptions 	parity = uart::UART_CONFIG_PARITY_NONE;
   uint8_t 	data_bits = 0;
   this->check_uart_settings(baud_rate, stop_bits, parity, data_bits);
   ESP_LOGW(TAG, "Serial setting: %d", baud_rate);
