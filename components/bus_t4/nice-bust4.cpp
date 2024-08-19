@@ -73,10 +73,10 @@ void NiceBusT4::setup() {
 
 void NiceBusT4::loop() {
   //if (this->init_ok == false) {
-    if ((millis() - this->last_update_) > 1000) {
+    //if ((millis() - this->last_update_) > 1000) {
       ESP_LOGW(TAG, "Device not anailable");
-    }
-    this->last_update_ = millis();
+    //}
+    //this->last_update_ = millis();
     //return;
   //}
 /*
