@@ -904,7 +904,7 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
 
   char br_ch = 0x00;                                               // для break
   //uart_flush(_uart);                                               // очищаем uart
-  thist->flush();
+  this->flush();
   //uart_set_baudrate(_uart, BAUD_BREAK);                            // занижаем бодрэйт
   this->parent_->uart_set_baudrate(BAUD_BREAK);
   //uart_write(_uart, &br_ch, 1);                                    // отправляем ноль на низкой скорости, длиинный ноль
