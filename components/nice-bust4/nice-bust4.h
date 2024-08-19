@@ -56,7 +56,7 @@ BusT4                       ESP8266
 
 
 namespace esphome {
-namespace NICE_BUST4 {
+namespace nice_bust4 {
 
 /* для короткого обращения к членам класса */
 using namespace esphome::cover;
@@ -378,7 +378,7 @@ enum position_hook_type : uint8_t {
  };
 
 // создаю класс, наследую членов классов Component и Cover
-class NICE_BUST4 : public uart::UARTDevice, public Component, public Cover {
+class nice_bust4 : public uart::UARTDevice, public Component, public Cover {
   public:
     //my_uart(UARTComponent *parent) : UARTDevice(parent) {}
 
@@ -486,5 +486,5 @@ class NICE_BUST4 : public uart::UARTDevice, public Component, public Cover {
 
 }; //класс
 
-} // namespace NICE_BUST4
+} // namespace nice_bust4
 } // namespace esphome
