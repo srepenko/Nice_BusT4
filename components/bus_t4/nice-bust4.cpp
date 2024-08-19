@@ -896,14 +896,10 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   //uart_flush(_uart);                                               // очищаем uart
   this->flush();
   //uart_set_baudrate(_uart, BAUD_BREAK);                            // занижаем бодрэйт
-  uint32_t 	baud_rate = 19200;
-  uint8_t 	stop_bits = 1;
-  uart::UARTParityOptions 	parity = uart::UART_CONFIG_PARITY_NONE;
-  uint8_t 	data_bits = 8;
-  this->check_uart_settings(baud_rate, stop_bits, parity, data_bits);
-  ESP_LOGW(TAG, "Serial setting: %d", BAUD_WORK);
-  ESP_LOGW(TAG, "Serial setting: %d", BAUD_BREAK);
+  //ESP_LOGW(TAG, "Serial setting: %d", BAUD_WORK);
+  //ESP_LOGW(TAG, "Serial setting: %d", BAUD_BREAK);
   this->parent_->set_baud_rate(BAUD_BREAK);
+  this->check_uart_settings(BAUD_BREAK, 1, uart::UART_CONFIG_PARITY_NONE, 8);
   //uart_write(_uart, &br_ch, 1);                                    // отправляем ноль на низкой скорости, длиинный ноль
   this->write_byte(br_ch);
   ////uart_write(_uart, (char *)&dummy, 1);
@@ -911,6 +907,7 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   delayMicroseconds(90);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
   //uart_set_baudrate(_uart, BAUD_WORK);                             // возвращаем рабочий бодрэйт
   this->parent_->set_baud_rate(BAUD_WORK);
+  this->check_uart_settings(BAUD_WORK, 1, uart::UART_CONFIG_PARITY_NONE, 8);
   //uart_write(_uart, (char *)&data[0], len);                                // отправляем основную посылку
   this->write_array(data, len);
   //uart_write(_uart, (char *)raw_cmd_buf, sizeof(raw_cmd_buf));
