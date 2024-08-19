@@ -435,7 +435,7 @@ class NiceBusT4 : public uart::UARTDevice, public Component, public Cover {
 	
     // переменные для uart
     uint8_t _uart_nr;
-    uart_t* _uart = nullptr;
+    //uart_t* _uart = nullptr;
     uint16_t _max_opn = 0;  // максимальная позиция энкодера или таймера
     uint16_t _pos_opn = 2048;  // позиция открытия энкодера или таймера, не для всех приводов.
     uint16_t _pos_cls = 0;  // позиция закрытия энкодера или таймера, не для всех приводов
