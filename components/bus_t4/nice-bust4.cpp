@@ -11,7 +11,9 @@ void EmptyUARTComponent::setup() {
 }
 
 void EmptyUARTComponent::loop() {
+  while(available()){
 
+  }
 }
 
 void EmptyUARTComponent::dump_config(){
