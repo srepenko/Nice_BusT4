@@ -88,11 +88,10 @@ void NiceBusT4::loop() {
           // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00)); //запрос продукта
     }
     this->last_update_ = millis();
-  } else{
-    if (this->init_ok == false) {
+  } else if (this->init_ok == false) {
       return;
-    }
   }
+  
   // разрешаем отправку каждые 100 ms
   uint32_t now = millis();
   if (now - this->last_uart_byte_ > 100) {
