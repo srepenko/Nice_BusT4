@@ -1,6 +1,6 @@
 substitutions:
   name: nice-wifi
-  device_description: ""
+  device_description: "Nice busT4"
   external_components_source: github://srepenko/Nice_BusT4@main
 
 esphome:
