@@ -99,7 +99,7 @@ void NiceBusT4::loop() {
     this->last_uart_byte_ = now;
   } 
 
-
+/*
   //while (uart_rx_available(_uart) > 0) {
   while (this->available()) {
     uint8_t c = 0;//(uint8_t)uart_read_char(_uart);                // считываем байт
@@ -125,7 +125,7 @@ void NiceBusT4::loop() {
     request_position();
   } 
   } // not robus
-
+*/
 } //loop
 
 
