@@ -6,7 +6,7 @@
 namespace esphome {
 namespace empty_uart_component {
 
-class EmptyUARTComponent : public uart::UARTDevice, public Component {
+class EmptyUARTComponent : public uart::UARTDevice, public Component, public Cover{
   public:
     void setup() override;
     void loop() override;
