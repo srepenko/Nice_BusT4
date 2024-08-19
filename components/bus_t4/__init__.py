@@ -8,7 +8,7 @@ DEPENDENCIES = ["uart"]
 CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
-niceBusT4_component_ns = cg.esphome_ns.namespace("niceBusT4_component")
+niceBusT4_component_ns = cg.esphome_ns.namespace("niceBusT4")
 NiceBusT4_component = niceBusT4_component_ns.class_(
     "NiceBusT4_component", cg.Component, uart.UARTDevice
 )
