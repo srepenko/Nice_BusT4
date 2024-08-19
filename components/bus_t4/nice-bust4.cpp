@@ -772,6 +772,7 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
 
 
 void NiceBusT4::dump_config() {    //  добавляем в  лог информацию о подключенном контроллере
+ESP_LOGW(TAG, "dump_config");
 /*
   ESP_LOGCONFIG(TAG, "  Bus T4 Cover");
   //ESP_LOGCONFIG(TAG, "  Address: 0x%02X%02X", *this->header_[1], *this->header_[2]);
