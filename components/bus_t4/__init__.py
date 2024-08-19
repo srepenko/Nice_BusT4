@@ -9,16 +9,16 @@ AUTO_LOAD = ['uart', 'cover']
 CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
-bus_t4_ns = cg.esphome_ns.namespace("bus_t4")
-bus_t4Component = bus_t4_ns.class_('bus_t4Component', cg.PollingComponent)
+NICE_BUST4_ns = cg.esphome_ns.namespace("NICE_BUST4")
+NICE_BUST4Component = NICE_BUST4_ns.class_('NICE_BUST4Component', cg.PollingComponent)
 MULTI_CONF = True
 
-bus_t4 = bus_t4_ns.class_(
-    "bus_t4", cg.Component, uart.UARTDevice
+NICE_BUST4 = NICE_BUST4_ns.class_(
+    "NICE_BUST4", cg.Component, uart.UARTDevice
 )
 
 CONFIG_SCHEMA = cv.All(
-    cv.Schema({cv.GenerateID(): cv.declare_id(bus_t4)})
+    cv.Schema({cv.GenerateID(): cv.declare_id(NICE_BUST4)})
     .extend(cv.polling_component_schema("1000ms"))
     .extend(uart.UART_DEVICE_SCHEMA)
 )
