@@ -155,28 +155,6 @@ button:
       lambda: |-
          nice_cover -> NiceBusT4::send_cmd(bus_t4::P_OPN1);
                       
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::STOP);
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::OPEN);
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::CLOSE);
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::P_OPN2);
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::P_OPN3);
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::P_OPN4);
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::P_OPN5);
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::P_OPN6);
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::UNLK_OPN);  # Разблокировать и открыть 
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::CLS_LOCK);  # Закрыть и блокировать
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::UNLCK_CLS); # Разблокировать и Закрыть
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::LOCK);      # Блокировать
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::UNLOCK);    # Разблокировать
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::HOST_SBS);  # Ведущий SBS
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::HOST_OPN);  # Ведущий открыть
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::HOST_CLS);  # Ведущий закрыть
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::SLAVE_SBS); # Ведомый SBS
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::SLAVE_OPN); # Ведомый открыть
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::SLAVE_CLS); # Ведомый закрыть
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::AUTO_ON);   # Автооткрывание активно
-#         nice_cover -> NiceBusT4::send_cmd(bus_t4::AUTO_OFF);  # Автооткрывание неактивно
-
 cover:
 - platform: bus_t4
   name: "Nice Cover"
