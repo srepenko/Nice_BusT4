@@ -23,17 +23,12 @@ bus_t4 = bus_t4_ns.class_(
     "bus_t4", cg.Component, uart.UARTDevice
 )
 
-#CONFIG_SCHEMA = cv.All(
-#    cv.Schema({cv.GenerateID(): cv.declare_id(NiceBusT4Component)})
-#    .extend(cv.polling_component_schema("1000ms"))
-#    .extend(uart.UART_DEVICE_SCHEMA)
-#)
-
-CONFIG_SCHEMA = (
+CONFIG_SCHEMA = cv.All(
     cv.Schema({cv.GenerateID(): cv.declare_id(bus_t4)})
-    .extend(cv.COMPONENT_SCHEMA)
+    .extend(cv.polling_component_schema("1000ms"))
     .extend(uart.UART_DEVICE_SCHEMA)
 )
+
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
