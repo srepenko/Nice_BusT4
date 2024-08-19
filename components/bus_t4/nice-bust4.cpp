@@ -74,7 +74,7 @@ void NiceBusT4::control(const CoverCall &call) {
 void NiceBusT4::setup() {
 //  delay (5000);   // пока привод не стартанёт, на команды отвечать не будет
 
-  _uart =  uart_init(_UART_NO, BAUD_WORK, SERIAL_8N1, SERIAL_FULL, TX_P, 256, false);
+  //_uart =  uart_init(_UART_NO, BAUD_WORK, SERIAL_8N1, SERIAL_FULL, TX_P, 256, false);
 //  delay (500);
   //  this->last_init_command_ = 0;
   // кто в сети?
@@ -115,8 +115,10 @@ void NiceBusT4::loop() {
   }
 
 
-  while (uart_rx_available(_uart) > 0) {
-    uint8_t c = (uint8_t)uart_read_char(_uart);                // считываем байт
+  //while (uart_rx_available(_uart) > 0) {
+  while (this->available() > 0) {
+    uint8_t c = 0;//(uint8_t)uart_read_char(_uart);                // считываем байт
+    this->read_bytes(c, 1);
     this->handle_char_(c);                                     // отправляем байт на обработку
     this->last_uart_byte_ = now;
   } //while
@@ -906,7 +908,8 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   // отправка данных в uart
 
   char br_ch = 0x00;                                               // для break
-  uart_flush(_uart);                                               // очищаем uart
+  //uart_flush(_uart);                                               // очищаем uart
+  thist->flush();
   uart_set_baudrate(_uart, BAUD_BREAK);                            // занижаем бодрэйт
   uart_write(_uart, &br_ch, 1);                                    // отправляем ноль на низкой скорости, длиинный ноль
   //uart_write(_uart, (char *)&dummy, 1);
