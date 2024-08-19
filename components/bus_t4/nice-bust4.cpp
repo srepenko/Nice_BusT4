@@ -65,18 +65,10 @@ void NiceBusT4::control(const CoverCall &call) {
 }
 
 void NiceBusT4::setup() {
-
-
-  //_uart =  uart_init(_UART_NO, BAUD_WORK, SERIAL_8N1, SERIAL_FULL, TX_P, 256, false);
-  //_uart_nr(uart_nr), _uart(NULL), _rxBufferSize(256), _txBufferSize(0), _onReceiveCB(NULL), 
-  //_onReceiveErrorCB(NULL), _onReceiveTimeout(false), _rxTimeout(1),
-  //_rxFIFOFull(0), _eventTask(NULL)
-  //_uart = uartBegin(_UART_NO, BAUD_WORK, SERIAL_8N1, RX_P, TX_P, 256, 0, false, 0);
-
+  ////_uart =  uart_init(_UART_NO, BAUD_WORK, SERIAL_8N1, SERIAL_FULL, TX_P, 256, false);
   // кто в сети?
 //  this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
   
-
 }
 
 void NiceBusT4::loop() {
