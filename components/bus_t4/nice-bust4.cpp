@@ -74,12 +74,25 @@ void NiceBusT4::setup() {
 void NiceBusT4::loop() {
   if (this->init_ok == false) {
     if ((millis() - this->last_update_) > 1000) {
-      ESP_LOGW(TAG, "Device not anailable %d %d", millis(), this->last_update_);
+      ESP_LOGW(TAG, "Device not anailable");
+      std::vector<uint8_t> unknown = {0x55, 0x55};
+      if (this->init_ok == false) {
+          this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
+          this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00)); //запрос продукта
+      } else if (this->class_gate_ == 0x55) {
+		      init_device(this->addr_to[0], this->addr_to[1], 0x04);  
+	        // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
+          // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00)); //запрос продукта
+	    }   else if (this->manufacturer_ == unknown)  {
+            init_device(this->addr_to[0], this->addr_to[1], 0x04);  
+            // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
+            // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00)); //запрос продукта
+      }
       this->last_update_ = millis();
     }
     return;
   }
-/*
+
     if ((millis() - this->last_update_) > 10000) {    // каждые 10 секунд
 // если привод не определился с первого раза, попробуем позже
         std::vector<uint8_t> unknown = {0x55, 0x55};
@@ -102,7 +115,7 @@ void NiceBusT4::loop() {
         this->last_update_ = millis();
     }  // if  каждую минуту
 
-	
+/*	
   // разрешаем отправку каждые 100 ms
     uint32_t now = millis();
   if (now - this->last_uart_byte_ > 100) {
