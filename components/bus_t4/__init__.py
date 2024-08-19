@@ -10,7 +10,7 @@ MULTI_CONF = True
 
 #CONF_NICEBUST4_ID = "nicebust4_id"
 
-bus_t4_ns = cg.esphome_ns.namespace("bus_t4")
+#bus_t4_ns = cg.esphome_ns.namespace("bus_t4")
 #NiceBusT4Component = nicebust4_ns.class_("NiceBusT4", cg.Component)
 
 #NICEBUST4_COMPONENT_SCHEMA = cv.Schema(
@@ -19,9 +19,9 @@ bus_t4_ns = cg.esphome_ns.namespace("bus_t4")
 #    }
 #)
 
-bus_t4 = bus_t4_ns.class_(
-    "bus_t4", cg.Component, uart.UARTDevice
-)
+#bus_t4 = bus_t4_ns.class_(
+#    "bus_t4", cg.Component, uart.UARTDevice
+#)
 
 #CONFIG_SCHEMA = cv.All(
 #    cv.Schema({cv.GenerateID(): cv.declare_id(NiceBusT4Component)})
@@ -29,11 +29,11 @@ bus_t4 = bus_t4_ns.class_(
 #    .extend(uart.UART_DEVICE_SCHEMA)
 #)
 
-CONFIG_SCHEMA = (
-    cv.Schema({cv.GenerateID(): cv.declare_id(bus_t4)})
-    .extend(cv.COMPONENT_SCHEMA)
-    .extend(uart.UART_DEVICE_SCHEMA)
-)
+#CONFIG_SCHEMA = (
+#    cv.Schema({cv.GenerateID(): cv.declare_id(bus_t4)})
+#    .extend(cv.COMPONENT_SCHEMA)
+#    .extend(uart.UART_DEVICE_SCHEMA)
+#)
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
