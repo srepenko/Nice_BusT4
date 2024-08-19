@@ -19,9 +19,9 @@ bus_t4_ns = cg.esphome_ns.namespace("bus_t4")
 #    }
 #)
 
-#bus_t4 = bus_t4_ns.class_(
-#    "bus_t4", cg.Component, uart.UARTDevice
-#)
+bus_t4 = bus_t4_ns.class_(
+    "bus_t4", cg.Component, uart.UARTDevice
+)
 
 #CONFIG_SCHEMA = cv.All(
 #    cv.Schema({cv.GenerateID(): cv.declare_id(NiceBusT4Component)})
