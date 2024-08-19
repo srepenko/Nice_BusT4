@@ -14,8 +14,7 @@ CONFIG_SCHEMA = cover.COVER_SCHEMA.extend({
     cv.Optional(CONF_ADDRESS): cv.hex_uint16_t,
     cv.Optional(CONF_USE_ADDRESS): cv.hex_uint16_t,
 #    cv.Optional(CONF_UPDATE_INTERVAL): cv.positive_time_period_milliseconds,
-    cv.Optional(CONF_UART_ID): cv.declare_id(),
-}).extend(cv.COMPONENT_SCHEMA)
+}).extend(cv.COMPONENT_SCHEMA).extend(uart.UART_DEVICE_SCHEMA)
 
 
 def to_code(config):
