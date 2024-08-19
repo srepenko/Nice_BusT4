@@ -9,11 +9,11 @@ AUTO_LOAD = ['uart', 'cover']
 CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
-nice-bust4_ns = cg.esphome_ns.namespace("nice-bust4")
-NICE_BUST4Component = NICE_BUST4_ns.class_('NICE_BUST4Component', cg.PollingComponent)
+nice_bust4_ns = cg.esphome_ns.namespace("nice-bust4")
+NICE_BUST4Component = nice_bust4_ns.class_('NICE_BUST4Component', cg.PollingComponent)
 MULTI_CONF = True
 
-NICE_BUST4 = NICE_BUST4_ns.class_(
+NICE_BUST4 = nice_bust4_ns.class_(
     "NICE_BUST4", cg.Component, uart.UARTDevice
 )
 
