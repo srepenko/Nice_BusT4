@@ -5,7 +5,7 @@ from esphome.const import CONF_ID
 from esphome.components import time
 
 DEPENDENCIES = ["uart"]
-AUTO_LOAD = ['uart']
+AUTO_LOAD = ['uart', 'cover']
 CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
