@@ -8,23 +8,23 @@ DEPENDENCIES = ["uart"]
 CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
-CONF_NiceBusT4_ID = "niceBusT4_id"
+CONF_NICEBUST4_ID = "nicebust4_id"
 
-niceBusT4_ns = cg.esphome_ns.namespace("niceBusT4")
-NiceBusT4Component = niceBusT4_ns.class_("NiceBusT4", cg.Component)
+nicebust4_ns = cg.esphome_ns.namespace("nicebust4")
+NiceBusT4Component = nicebust4_ns.class_("NiceBusT4", cg.Component)
 
-NiceBusT4_COMPONENT_SCHEMA = cv.Schema(
+NICEBUST4_COMPONENT_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_NiceBusT4_ID): cv.use_id(NiceBusT4Component),
+        cv.Required(CONF_NICEBUST4_ID): cv.use_id(NiceBusT4Component),
     }
 )
 
-NiceBusT4 = niceBusT4_ns.class_(
-    "NiceBusT4", cg.Component, uart.UARTDevice
-)
+#NiceBusT4 = nicebust4_ns.class_(
+#    "NiceBusT4", cg.Component, uart.UARTDevice
+#)
 
 CONFIG_SCHEMA = cv.All(
-    cv.Schema({cv.GenerateID(): cv.declare_id(NiceBusT4)})
+    cv.Schema({cv.GenerateID(): cv.declare_id(NiceBusT4Component)})
     .extend(cv.polling_component_schema("1000ms"))
     .extend(uart.UART_DEVICE_SCHEMA)
 )
