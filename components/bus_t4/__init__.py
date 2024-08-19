@@ -10,7 +10,7 @@ MULTI_CONF = True
 
 #CONF_NICEBUST4_ID = "nicebust4_id"
 
-#bus_t4_ns = cg.esphome_ns.namespace("bus_t4")
+bus_t4_ns = cg.esphome_ns.namespace("bus_t4")
 #NiceBusT4Component = nicebust4_ns.class_("NiceBusT4", cg.Component)
 
 #NICEBUST4_COMPONENT_SCHEMA = cv.Schema(
