@@ -8,16 +8,16 @@ DEPENDENCIES = ["uart"]
 CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
-#empty_uart_component_ns = cg.esphome_ns.namespace("empty_uart_component")
-#EmptyUARTComponent = empty_uart_component_ns.class_(
-#    "EmptyUARTComponent", cg.Component, uart.UARTDevice
-#)
+niceBusе4_component_ns = cg.esphome_ns.namespace("niceиusе4_component")
+NiceBusе4_component = niceBusе4_component_ns.class_(
+    "NiceBusе4_component", cg.Component, uart.UARTDevice
+)
 
-#CONFIG_SCHEMA = (
-#    cv.Schema({cv.GenerateID(): cv.declare_id(EmptyUARTComponent)})
-#    .extend(cv.COMPONENT_SCHEMA)
-#    .extend(uart.UART_DEVICE_SCHEMA)
-#)
+CONFIG_SCHEMA = (
+    cv.Schema({cv.GenerateID(): cv.declare_id(NiceBusе4_component)})
+    .extend(cv.COMPONENT_SCHEMA)
+    .extend(uart.UART_DEVICE_SCHEMA)
+)
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
