@@ -62,7 +62,6 @@ namespace bus_t4 {
 using namespace esphome::cover;
 //using esp8266::timeoutTemplate::oneShotMs;
 
-__uart = uart::UARTDevice;
 static const int _UART_NO=0; /* номер uart */
 static const int TX_P = 21;
 static const int RX_P = 20;         /* пин Tx */
@@ -378,7 +377,7 @@ enum position_hook_type : uint8_t {
  };
 
 // создаю класс, наследую членов классов Component и Cover
-class NiceBusT4 : public Component, public Cover {
+class NiceBusT4 : public uart::UARTDevice, public Component, public Cover {
   public:
 	
     // настройки привода
