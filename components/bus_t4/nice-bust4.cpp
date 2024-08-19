@@ -72,6 +72,12 @@ void NiceBusT4::setup() {
 }
 
 void NiceBusT4::loop() {
+  if (this->init_ok == false) {
+    if ((millis() - this->last_update_) > 10000) {
+
+    }
+    this->last_update_ = millis();
+  }
 /*
     if ((millis() - this->last_update_) > 10000) {    // каждые 10 секунд
 // если привод не определился с первого раза, попробуем позже
