@@ -93,10 +93,8 @@ void NiceBusT4::loop() {
     }
   //}
 
-
-/*	
   // разрешаем отправку каждые 100 ms
-    uint32_t now = millis();
+  uint32_t now = millis();
   if (now - this->last_uart_byte_ > 100) {
     this->ready_to_tx_ = true;
     this->last_uart_byte_ = now;
@@ -111,6 +109,7 @@ void NiceBusT4::loop() {
     this->last_uart_byte_ = now;
   } //while
 
+/*	
   if (this->ready_to_tx_) {   // если можно отправлять
     if (!this->tx_buffer_.empty()) {  // если есть что отправлять
       this->send_array_cmd(this->tx_buffer_.front()); // отправляем первую команду в очереди
