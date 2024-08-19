@@ -8,22 +8,26 @@ DEPENDENCIES = ["uart"]
 CODEOWNERS = ["@srepenko"]
 MULTI_CONF = True
 
-bus_t4_ns = cg.esphome_ns.namespace("bus_t4")
-Bus_T4 = bus_t4_ns.class_(
-    "Bus_T4", cg.Component, uart.UARTDevice
-)
+#bus_t4_ns = cg.esphome_ns.namespace("bus_t4")
+#Bus_T4 = bus_t4_ns.class_(
+#    "Bus_T4", cg.Component, uart.UARTDevice
+#)
 
-CONFIG_SCHEMA = (
-    cv.Schema({cv.GenerateID(): cv.declare_id(Bus_T4)})
-    .extend(cv.COMPONENT_SCHEMA)
-    .extend(uart.UART_DEVICE_SCHEMA)
-)
+#CONFIG_SCHEMA = (
+#    cv.Schema({cv.GenerateID(): cv.declare_id(Bus_T4)})
+#    .extend(cv.COMPONENT_SCHEMA)
+#    .extend(uart.UART_DEVICE_SCHEMA)
+#)
 
-async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
-    await cg.register_component(var, config)
-    await uart.register_uart_device(var, config)
-    
+#async def to_code(config):
+#    var = cg.new_Pvariable(config[CONF_ID])
+#    await cg.register_component(var, config)
+#    await uart.register_uart_device(var, config)
+
+
+
+
+
 #CONF_NICEBUST4_ID = "nicebust4_id"
 
 #bus_t4_ns = cg.esphome_ns.namespace("bus_t4")
