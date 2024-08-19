@@ -72,8 +72,8 @@ void NiceBusT4::setup() {
 }
 
 void NiceBusT4::loop() {
-  if (this->init_ok == false) {
-    if ((millis() - this->last_update_) > 1000) {
+  if (this->init_ok == false || (millis() - this->last_update_) > 10000) {
+    if ((millis() - this->last_update_) > 10000) {
       ESP_LOGW(TAG, "Device not anailable");
       std::vector<uint8_t> unknown = {0x55, 0x55};
       if (this->init_ok == false) {
