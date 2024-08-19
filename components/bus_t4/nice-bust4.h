@@ -51,6 +51,7 @@ BusT4                       ESP8266
 #include <HardwareSerial.h>
 #include "esphome/core/helpers.h"              // парсим строки встроенными инструментами
 #include <queue>                               // для работы с очередью
+#include "esphome/components/uart/uart.h"
 
 
 
