@@ -72,27 +72,27 @@ void NiceBusT4::setup() {
 }
 
 void NiceBusT4::loop() {
-  //if (this->init_ok == false || (millis() - this->last_update_) > 10000) {
-    if ((millis() - this->last_update_) > 10000) {
-      std::vector<uint8_t> unknown = {0x55, 0x55};
-      if (this->init_ok == false) {
-          ESP_LOGW(TAG, "Device not anailable");
-          this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
-          this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00)); //запрос продукта
-          //return;
-      } else if (this->class_gate_ == 0x55) {
-		      init_device(this->addr_to[0], this->addr_to[1], 0x04);  
-	        // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
+  if ((millis() - this->last_update_) > 10000) {
+    std::vector<uint8_t> unknown = {0x55, 0x55};
+    if (this->init_ok == false) {
+        ESP_LOGW(TAG, "Device not anailable");
+        this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
+        this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00)); //запрос продукта
+    } else if (this->class_gate_ == 0x55) {
+        init_device(this->addr_to[0], this->addr_to[1], 0x04);  
+        // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
+        // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00)); //запрос продукта
+    }   else if (this->manufacturer_ == unknown)  {
+          init_device(this->addr_to[0], this->addr_to[1], 0x04);  
+          // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
           // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00)); //запрос продукта
-	    }   else if (this->manufacturer_ == unknown)  {
-            init_device(this->addr_to[0], this->addr_to[1], 0x04);  
-            // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
-            // this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00)); //запрос продукта
-      }
-      this->last_update_ = millis();
     }
-  //}
-
+    this->last_update_ = millis();
+  } else{
+    if (this->init_ok == false) {
+      return;
+    }
+  }
   // разрешаем отправку каждые 100 ms
   uint32_t now = millis();
   if (now - this->last_uart_byte_ > 100) {
