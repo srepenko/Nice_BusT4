@@ -378,7 +378,7 @@ enum position_hook_type : uint8_t {
  };
 
 // создаю класс, наследую членов классов Component и Cover
-class NiceBusT4 : public uart::UARTDevice, public Component, public Cover {
+class bus_t4 : public uart::UARTDevice, public Component, public Cover {
   public:
     //my_uart(UARTComponent *parent) : UARTDevice(parent) {}
 
