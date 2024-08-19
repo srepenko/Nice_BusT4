@@ -34,6 +34,8 @@ ota:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  #ssid: "KTM"
+  #password: "qawsedrf"
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
