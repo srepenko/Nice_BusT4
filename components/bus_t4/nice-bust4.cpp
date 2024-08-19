@@ -951,7 +951,7 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   ////uart_set_baudrate(_uart, BAUD_WORK);                             // возвращаем рабочий бодрэйт
   this->set_baud_rate(BAUD_WORK);
   ////uart_write(_uart, (char *)&data[0], len);                                // отправляем основную посылку
-  this->write_array(data[0], len);
+  this->write_array((char *)data[0], len);
   //uart_write(_uart, (char *)raw_cmd_buf, sizeof(raw_cmd_buf));
   ////uart_wait_tx_empty(_uart);                                       // ждем завершения отправки
 
