@@ -910,15 +910,19 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   char br_ch = 0x00;                                               // для break
   //uart_flush(_uart);                                               // очищаем uart
   thist->flush();
-  uart_set_baudrate(_uart, BAUD_BREAK);                            // занижаем бодрэйт
-  uart_write(_uart, &br_ch, 1);                                    // отправляем ноль на низкой скорости, длиинный ноль
-  //uart_write(_uart, (char *)&dummy, 1);
-  uart_wait_tx_empty(_uart);                                       // ждём, пока отправка завершится. Здесь в библиотеке uart.h (esp8266 core 3.0.2) ошибка, ожидания недостаточно при дальнейшем uart_set_baudrate().
+  //uart_set_baudrate(_uart, BAUD_BREAK);                            // занижаем бодрэйт
+  this->parent_->uart_set_baudrate(BAUD_BREAK);
+  //uart_write(_uart, &br_ch, 1);                                    // отправляем ноль на низкой скорости, длиинный ноль
+  this->write_array(br_ch, 1);
+  ////uart_write(_uart, (char *)&dummy, 1);
+  //uart_wait_tx_empty(_uart);                                       // ждём, пока отправка завершится. Здесь в библиотеке uart.h (esp8266 core 3.0.2) ошибка, ожидания недостаточно при дальнейшем uart_set_baudrate().
   delayMicroseconds(90);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
-  uart_set_baudrate(_uart, BAUD_WORK);                             // возвращаем рабочий бодрэйт
-  uart_write(_uart, (char *)&data[0], len);                                // отправляем основную посылку
+  //uart_set_baudrate(_uart, BAUD_WORK);                             // возвращаем рабочий бодрэйт
+  this->parent_->uart_set_baudrate(BAUD_WORK);
+  //uart_write(_uart, (char *)&data[0], len);                                // отправляем основную посылку
+  this->write_array(data, len);
   //uart_write(_uart, (char *)raw_cmd_buf, sizeof(raw_cmd_buf));
-  uart_wait_tx_empty(_uart);                                       // ждем завершения отправки
+  //uart_wait_tx_empty(_uart);                                       // ждем завершения отправки
 
 
 
