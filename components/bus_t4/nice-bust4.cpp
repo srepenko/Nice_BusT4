@@ -66,6 +66,7 @@ void NiceBusT4::control(const CoverCall &call) {
 void NiceBusT4::setup() {
 //  delay (5000);   // пока привод не стартанёт, на команды отвечать не будет
   //_uart =  uart_init(_UART_NO, BAUD_WORK, SERIAL_8N1, SERIAL_FULL, TX_P, 256, false);
+  Serial.begin(BAUD_WORK, SERIAL_8N1, SERIAL_FULL, TX_P, 256, false);
 //  delay (500);
   //  this->last_init_command_ = 0;
   // кто в сети?
@@ -77,7 +78,7 @@ void NiceBusT4::setup() {
 void NiceBusT4::loop() {
 
     if ((millis() - this->last_update_) > 1000) {    // каждые 10 секунд
-    Serial.begin(19200);
+    
     Serial.write("01234", 5);
     delay(90);
     Serial.updateBaudRate(9200);
