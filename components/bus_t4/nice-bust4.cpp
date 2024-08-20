@@ -135,8 +135,8 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
   uint8_t *data = &this->rx_message_[0];               // указатель на первый байт сообщения
   uint8_t new_byte = data[at];                      // последний полученный байт
   // Byte 0: HEADER1 (всегда 0x00)
-  //if (at == 0x00)
-   // return new_byte == 0x00;
+  if (at == 0x00)
+    return new_byte == 0x00;
   // Byte 1: HEADER2 (всегда 0x55)
   if (at == 1)
     return new_byte == START_CODE;
