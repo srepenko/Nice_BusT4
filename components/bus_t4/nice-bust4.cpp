@@ -65,10 +65,6 @@ void NiceBusT4::control(const CoverCall &call) {
 
 void NiceBusT4::setup() {
 //  delay (5000);   // пока привод не стартанёт, на команды отвечать не будет
-	Serial.begin(19200, SERIAL_8O1, 4, 2);
-	Serial.end();
-	Serial.begin(9200, SERIAL_8O1, 16 ,17);
-  Serial.end();
   //_uart =  uart_init(_UART_NO, BAUD_WORK, SERIAL_8N1, SERIAL_FULL, TX_P, 256, false);
 //  delay (500);
   //  this->last_init_command_ = 0;
@@ -80,7 +76,11 @@ void NiceBusT4::setup() {
 
 void NiceBusT4::loop() {
 
-    if ((millis() - this->last_update_) > 10000) {    // каждые 10 секунд
+    if ((millis() - this->last_update_) > 1000) {    // каждые 10 секунд
+    Serial.begin(19200, SERIAL_8O1, 4, 2);
+	Serial.end();
+	Serial.begin(9200, SERIAL_8O1, 16 ,17);
+  Serial.end();
 // если привод не определился с первого раза, попробуем позже
         std::vector<uint8_t> unknown = {0x55, 0x55};
         if (this->init_ok == false) {
