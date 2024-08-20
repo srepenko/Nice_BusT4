@@ -125,7 +125,8 @@ void NiceBusT4::loop() {
 
 void NiceBusT4::handle_char_(uint8_t c) {
   this->rx_message_.push_back(c);                      // кидаем байт в конец полученного сообщения
-  ESP_LOGW(TAG, "Received: %s", this->rx_message_);
+  std::string pretty_cmd = format_hex_pretty(rx_message_);
+  ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd.c_str() );
   if (!this->validate_message_()) {                    // проверяем получившееся сообщение
     this->rx_message_.clear();                         // если проверка не прошла, то в сообщении мусор, нужно удалить
   }
