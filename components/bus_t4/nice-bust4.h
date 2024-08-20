@@ -397,8 +397,8 @@ class NiceBusT4 : public Component, public Cover{
     void set_from_address(uint16_t from_address) {this->from_addr = from_address;} 
     void set_oxi_address(uint16_t oxi_address) {this->oxi_addr = oxi_address;}
 
-    void set_rx_pin(uint8_t rxPin) {this->rxPin = rxPin;}
-    void set_tx_pin(uint8_t txPin) {this->rxPin = txPin;}
+    void set_rx_pin(uint8_t rx_pin) {this->rxPin = rx_pin;}
+    void set_tx_pin(uint8_t tx_pin) {this->rxPin = tx_pin;}
 
     
  /*   void set_update_interval(uint32_t update_interval) {  // интервал получения статуса привода
