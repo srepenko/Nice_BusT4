@@ -107,7 +107,6 @@ void NiceBusT4::loop() {
   //while (uart_rx_available(_uart) > 0) {
   while (Serial1.available() > 0) {
     uint8_t c = Serial1.read();                // считываем байт
-    ESP_LOGW(TAG, "Received: %02X", c);
     this->handle_char_(c);                                     // отправляем байт на обработку
     this->last_uart_byte_ = now;
   } //while
@@ -126,6 +125,7 @@ void NiceBusT4::loop() {
 
 void NiceBusT4::handle_char_(uint8_t c) {
   this->rx_message_.push_back(c);                      // кидаем байт в конец полученного сообщения
+  ESP_LOGW(TAG, "Received: %s", this->rx_message_.c_str());
   if (!this->validate_message_()) {                    // проверяем получившееся сообщение
     this->rx_message_.clear();                         // если проверка не прошла, то в сообщении мусор, нужно удалить
   }
