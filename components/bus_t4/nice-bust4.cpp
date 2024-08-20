@@ -107,6 +107,7 @@ void NiceBusT4::loop() {
   //while (uart_rx_available(_uart) > 0) {
   while (Serial1.available() > 0) {
     uint8_t c = Serial1.read();                // считываем байт
+    ESP_LOGW(TAG, "Received: %02X", c);
     this->handle_char_(c);                                     // отправляем байт на обработку
     this->last_uart_byte_ = now;
   } //while
