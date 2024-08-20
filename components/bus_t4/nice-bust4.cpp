@@ -78,7 +78,7 @@ void NiceBusT4::setup() {
 }
 
 void NiceBusT4::loop() {
-/*
+
     if ((millis() - this->last_update_) > 5000) {    // каждые 10 секунд   
 // если привод не определился с первого раза, попробуем позже
         std::vector<uint8_t> unknown = {0x55, 0x55};
@@ -93,7 +93,7 @@ void NiceBusT4::loop() {
         }
         this->last_update_ = millis();
     }  // if  каждую минуту
-*/
+
 
 
   // разрешаем отправку каждые 100 ms
