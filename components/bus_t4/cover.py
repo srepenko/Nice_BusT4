@@ -35,12 +35,12 @@ def to_code(config):
         cg.add(var.set_from_address(use_address))
     
     if CONF_RX_PIN in config:
-        rxPin = config[CONF_RX_PIN]
-        cg.add(var.set_rx_pin(rxPin))
+        rx_pin = config[CONF_RX_PIN]
+        cg.add(var.set_rx_pin(rx_pin))
     
     if CONF_TX_PIN in config:
-        txPin = config[CONF_TX_PIN]
-        cg.add(var.set_tx_pin(txPin))
+        tx_pin = config[CONF_TX_PIN]
+        cg.add(var.set_tx_pin(tx_pin))
         
         
         
