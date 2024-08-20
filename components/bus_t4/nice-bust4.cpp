@@ -68,7 +68,7 @@ void NiceBusT4::setup() {
   //_uart =  uart_init(_UART_NO, BAUD_WORK, SERIAL_8N1, SERIAL_FULL, TX_P, 256, false);
   // unsigned long baud, uint32_t config = SERIAL_8N1, int8_t rxPin = -1, int8_t txPin = -1, bool invert = false, unsigned long timeout_ms = 20000UL,
   //Serial.begin(BAUD_WORK, SERIAL_8N1, rxPin, txPin, false, 256);
-  Serial1.begin(BAUD_WORK, SERIAL_8N1, this->rxPin, this->txPin);
+  Serial1.begin(BAUD_WORK, SERIAL_8N1, rxPin, txPin);
 //  delay (500);
   //  this->last_init_command_ = 0;
   // кто в сети?
