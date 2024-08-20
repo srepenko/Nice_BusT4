@@ -896,9 +896,9 @@ void NiceBusT4::send_array_cmd (std::vector<uint8_t> data) {          // отп�
 void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   // отправка данных в uart
   char br_ch = 0x00;                                               // для break
-  Serial1.flush();
-  Serial1.updateBaudRate(BAUD_BREAK);
-  Serial1.write(&br_ch, 1);                                         // отправляем ноль на низкой скорости, длиинный ноль
+  //Serial1.flush();
+  //Serial1.updateBaudRate(BAUD_BREAK);
+  //Serial1.write(&br_ch, 1);                                         // отправляем ноль на низкой скорости, длиинный ноль
   Serial1.flush();
   //delayMicroseconds(90);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
   Serial1.updateBaudRate(BAUD_WORK);
