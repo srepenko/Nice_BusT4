@@ -192,6 +192,8 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
 
   if (data[length - 1] != crc2 ) {
     ESP_LOGW(TAG, "Received invalid message checksum 2 %02X!=%02X", data[length - 1], crc2);
+    std::string pretty_cmd1 = format_hex_pretty(rx_message_);
+    ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd1.c_str() );
     return false;
   }
 
@@ -199,6 +201,8 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
   //  if (at  ==  length) {
   if (data[length] != packet_size ) {
     ESP_LOGW(TAG, "Received invalid message size %02X!=%02X", data[length], packet_size);
+    std::string pretty_cmd1 = format_hex_pretty(rx_message_);
+    ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd1.c_str() );
     return false;
   }
 
