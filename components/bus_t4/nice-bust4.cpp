@@ -101,7 +101,7 @@ void NiceBusT4::loop() {
     this->last_uart_byte_ = now;
   }
 
-
+/*
   //while (uart_rx_available(_uart) > 0) {
   while (this->available() > 0) {
     uint8_t c = 0;//(uint8_t)uart_read_char(_uart);                // считываем байт
@@ -109,7 +109,7 @@ void NiceBusT4::loop() {
     this->handle_char_(c);                                     // отправляем байт на обработку
     this->last_uart_byte_ = now;
   } //while
-
+*/
   if (this->ready_to_tx_) {   // если можно отправлять
     if (!this->tx_buffer_.empty()) {  // если есть что отправлять
       this->send_array_cmd(this->tx_buffer_.front()); // отправляем первую команду в очереди
