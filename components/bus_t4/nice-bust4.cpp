@@ -139,8 +139,8 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
   //if (at == 0x00)
    // return new_byte == 0x00;
   // Byte 1: HEADER2 (всегда 0x55)
-  //if (at == 1)
-//    return new_byte == START_CODE;
+  if (at == 1)
+    return new_byte == START_CODE;
 
   // Byte 2: packet_size - количество байт дальше + 1
   // Проверка не проводится
