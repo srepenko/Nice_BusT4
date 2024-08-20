@@ -79,16 +79,7 @@ void NiceBusT4::setup() {
 
 void NiceBusT4::loop() {
 
-    if ((millis() - this->last_update_) > 1000) {    // каждые 10 секунд
-    
-    Serial.updateBaudRate(BAUD_BREAK);
-    Serial.write("01234", 5);
-    delay(90);
-    Serial.updateBaudRate(BAUD_WORK);
-    Serial.write("01234", 5);
-    
-    
-    
+    if ((millis() - this->last_update_) > 1000) {    // каждые 10 секунд   
 // если привод не определился с первого раза, попробуем позже
         std::vector<uint8_t> unknown = {0x55, 0x55};
         if (this->init_ok == false) {
@@ -904,25 +895,14 @@ void NiceBusT4::send_array_cmd (std::vector<uint8_t> data) {          // отп�
 }
 void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   // отправка данных в uart
-
   char br_ch = 0x00;                                               // для break
-  //this->flush();
-  //this->parent_->set_baud_rate(BAUD_BREAK);
-  //this->parent_->load_settings(false);
-
-  //this->check_uart_settings(BAUD_BREAK, 1, uart::UART_CONFIG_PARITY_NONE, 8);
-  //uart_write(_uart, &br_ch, 1);                                    // отправляем ноль на низкой скорости, длиинный ноль
-  //this->write_byte(br_ch);
+  Serial.flush();
+  Serial.updateBaudRate(BAUD_BREAK);
+  Serial.write(br_ch, 1);                                         // отправляем ноль на низкой скорости, длиинный ноль
   delayMicroseconds(90);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
-  //this->parent_->set_baud_rate(BAUD_WORK);
-  //this->parent_->load_settings(false);
-  //this->check_uart_settings(BAUD_WORK, 1, uart::UART_CONFIG_PARITY_NONE, 8);
-  //this->write_array(data, len);
-  //uart_write(_uart, (char *)raw_cmd_buf, sizeof(raw_cmd_buf));
+  Serial.updateBaudRate(BAUD_WORK);
+  Serial.write(data, len);  
   //uart_wait_tx_empty(_uart);                                       // ждем завершения отправки
-
-
-
   std::string pretty_cmd = format_hex_pretty((uint8_t*)&data[0], len);                    // для вывода команды в лог
   ESP_LOGI(TAG,  "Отправлено: %S ", pretty_cmd.c_str() );
 
