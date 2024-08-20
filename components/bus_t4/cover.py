@@ -33,6 +33,15 @@ def to_code(config):
     if CONF_USE_ADDRESS in config:
         use_address = config[CONF_USE_ADDRESS]
         cg.add(var.set_from_address(use_address))
+    
+    if CONF_RX_PIN in config:
+        rxPin = config[CONF_RX_PIN]
+        cg.add(var.set_rx_pin(rxPin))
+    
+    if CONF_TX_PIN in config:
+        txPin = config[CONF_TX_PIN]
+        cg.add(var.set_tx_pin(txPin))
+        
         
         
  #   if CONF_UPDATE_INTERVAL in config:
