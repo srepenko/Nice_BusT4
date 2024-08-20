@@ -140,7 +140,7 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
   ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd1.c_str() );
 
   // Byte 0: HEADER1 (всегда 0x00)
-  if (at == 0)
+  if (at == 0xE0)
     return new_byte == 0x00;
   // Byte 1: HEADER2 (всегда 0x55)
   if (at == 1)
