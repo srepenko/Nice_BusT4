@@ -65,8 +65,8 @@ using namespace esphome::cover;
 
 //static const int _UART_NO=UART0; /* номер uart */
 //static const int TX_P = 1;         /* пин Tx */
-uint8_t rx_pin = -1;
-uint8_t tx_pin = -1;
+uint8_t rx_pin;
+uint8_t tx_pin;
 static const uint32_t BAUD_BREAK = 9200; /* бодрэйт для длинного импульса перед пакетом */
 static const uint32_t BAUD_WORK = 19200; /* рабочий бодрэйт */
 static const uint8_t START_CODE = 0x55; /*стартовый байт пакета */
