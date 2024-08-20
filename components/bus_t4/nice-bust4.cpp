@@ -899,12 +899,14 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   Serial1.flush();
   Serial1.updateBaudRate(BAUD_BREAK);
   Serial1.write(&br_ch, 1);                                         // отправляем ноль на низкой скорости, длиинный ноль
-  delayMicroseconds(90);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
+  Serial1.flush();
+  //delayMicroseconds(90);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
   Serial1.updateBaudRate(BAUD_WORK);
   Serial1.write(data, len);  
+  Serial1.flush();
   //Microseconds  bit   byte
   //19200	        52	  521
-  delayMicroseconds(521*len);
+  //delayMicroseconds(521*len);
   //uart_wait_tx_empty(_uart);                                       // ждем завершения отправки
   std::string pretty_cmd = format_hex_pretty((uint8_t*)&data[0], len);                    // для вывода команды в лог
   ESP_LOGI(TAG,  "Отправлено: %S ", pretty_cmd.c_str() );
