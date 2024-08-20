@@ -78,9 +78,9 @@ void NiceBusT4::loop() {
 
     if ((millis() - this->last_update_) > 1000) {    // каждые 10 секунд
     Serial.begin(19200, SERIAL_8O1, 4, 2);
-    Serial.println("01234");
+    Serial.write("01234", 5);
     Serial.updateBaudRate(9200);
-    Serial.println("01234");
+    Serial.write("01234", 5);
     Serial.end();
 // если привод не определился с первого раза, попробуем позже
         std::vector<uint8_t> unknown = {0x55, 0x55};
