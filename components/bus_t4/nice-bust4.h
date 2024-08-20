@@ -370,7 +370,7 @@ struct packet_rsp_body_t {
 
 
 // создаю класс, наследую членов классов Component и Cover
-class NiceBusT4 : public Component, public Cover, public uart::IDFUARTComponent{
+class NiceBusT4 : public Component, public Cover, public IDFUARTComponent{
 //class NiceBusT4 : public uart::UARTDevice, public Component, public Cover {
   public:
 	
