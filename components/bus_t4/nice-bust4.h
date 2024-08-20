@@ -65,8 +65,6 @@ using namespace esphome::cover;
 
 //static const int _UART_NO=UART0; /* номер uart */
 //static const int TX_P = 1;         /* пин Tx */
-uint8_t rx_pin;
-uint8_t tx_pin;
 static const uint32_t BAUD_BREAK = 9200; /* бодрэйт для длинного импульса перед пакетом */
 static const uint32_t BAUD_WORK = 19200; /* рабочий бодрэйт */
 static const uint8_t START_CODE = 0x55; /*стартовый байт пакета */
@@ -399,8 +397,8 @@ class NiceBusT4 : public Component, public Cover{
     void set_from_address(uint16_t from_address) {this->from_addr = from_address;} 
     void set_oxi_address(uint16_t oxi_address) {this->oxi_addr = oxi_address;}
 
-    void set_rx_pin(uint8_t rx_pin) {rx_pin = rx_pin;}
-    void set_tx_pin(uint8_t tx_pin) {tx_pin = tx_pin;}
+    void set_rx_pin(uint8_t rx_pin) {this->rx_pin = rx_pin;}
+    void set_tx_pin(uint8_t tx_pin) {this->tx_pin = tx_pin;}
 
     
  /*   void set_update_interval(uint32_t update_interval) {  // интервал получения статуса привода
@@ -440,6 +438,8 @@ class NiceBusT4 : public Component, public Cover{
     uint16_t from_addr  = 0x0066; //от кого пакет, адрес bust4 шлюза
     uint16_t to_addr; // = 0x00ff;	 // кому пакет, адрес контроллера привода, которым управляем
     uint16_t oxi_addr; // = 0x000a;	 // адрес приемника
+    uint8_t rx_pin;
+    uint8_t tx_pin;
     
 
     std::vector<uint8_t> raw_cmd_prepare (std::string data);             // подготовка введенных пользователем данных для возможности отправки	
