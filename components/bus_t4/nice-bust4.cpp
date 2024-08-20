@@ -105,9 +105,9 @@ void NiceBusT4::loop() {
 
 
   //while (uart_rx_available(_uart) > 0) {
-  while (Serial.available()) {
+  while (Serial1.available()) {
     uint8_t c = 0;//(uint8_t)uart_read_char(_uart);                // считываем байт
-    Serial.read(&c,1);
+    Serial1.read(&c,1);
     this->handle_char_(c);                                     // отправляем байт на обработку
     this->last_uart_byte_ = now;
   } //while
@@ -896,12 +896,12 @@ void NiceBusT4::send_array_cmd (std::vector<uint8_t> data) {          // отп�
 void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   // отправка данных в uart
   char br_ch = 0x00;                                               // для break
-  Serial.flush();
-  Serial.updateBaudRate(BAUD_BREAK);
-  Serial.write(&br_ch, 1);                                         // отправляем ноль на низкой скорости, длиинный ноль
+  Serial1.flush();
+  Serial1.updateBaudRate(BAUD_BREAK);
+  Serial1.write(&br_ch, 1);                                         // отправляем ноль на низкой скорости, длиинный ноль
   delayMicroseconds(800);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
-  Serial.updateBaudRate(BAUD_WORK);
-  Serial.write(data, len);  
+  Serial1.updateBaudRate(BAUD_WORK);
+  Serial1.write(data, len);  
   //uart_wait_tx_empty(_uart);                                       // ждем завершения отправки
   std::string pretty_cmd = format_hex_pretty((uint8_t*)&data[0], len);                    // для вывода команды в лог
   ESP_LOGI(TAG,  "Отправлено: %S ", pretty_cmd.c_str() );
