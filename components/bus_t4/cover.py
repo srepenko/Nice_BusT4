@@ -14,6 +14,8 @@ CONFIG_SCHEMA = cover.COVER_SCHEMA.extend({
     cv.Optional(CONF_ADDRESS): cv.hex_uint16_t,
     cv.Optional(CONF_USE_ADDRESS): cv.hex_uint16_t,
 #    cv.Optional(CONF_UPDATE_INTERVAL): cv.positive_time_period_milliseconds,
+    cv.Optional(CONF_RX_PIN): cv.uint8_t,
+    cv.Optional(CONF_TX_PIN): cv.uint8_t,
 }).extend(cv.COMPONENT_SCHEMA)#.extend(uart.UART_DEVICE_SCHEMA)
 
 
