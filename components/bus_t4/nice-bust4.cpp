@@ -106,8 +106,7 @@ void NiceBusT4::loop() {
 
   //while (uart_rx_available(_uart) > 0) {
   while (Serial1.available() > 0) {
-    uint8_t c = 0;//(uint8_t)uart_read_char(_uart);                // считываем байт
-    Serial1.read(&c,1);
+    uint8_t c = Serial1.read();                // считываем байт
     this->handle_char_(c);                                     // отправляем байт на обработку
     this->last_uart_byte_ = now;
   } //while
