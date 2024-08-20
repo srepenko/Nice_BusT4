@@ -84,6 +84,7 @@ void NiceBusT4::loop() {
     Serial.updateBaudRate(9200);
     Serial.write("01234", 5);
     delay(90);
+    Serial.updateBaudRate(19200);
     Serial.write("01234", 5);
     
     
