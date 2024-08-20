@@ -903,7 +903,7 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   Serial1.updateBaudRate(BAUD_BREAK);
   Serial1.write(&br_ch, 1);                                         // отправляем ноль на низкой скорости, длиинный ноль
   //Serial1.flush();
-  delayMicroseconds(900);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
+  delayMicroseconds(90);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
   Serial1.updateBaudRate(BAUD_WORK);
   Serial1.write(data, len);  
   Serial1.flush();
