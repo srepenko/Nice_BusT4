@@ -83,7 +83,7 @@ void NiceBusT4::loop() {
     delay(90);
     Serial.updateBaudRate(9200);
     Serial.write("01234", 5);
-    Serial.end();
+    
 // если привод не определился с первого раза, попробуем позже
         std::vector<uint8_t> unknown = {0x55, 0x55};
         if (this->init_ok == false) {
