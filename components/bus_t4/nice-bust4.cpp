@@ -81,10 +81,10 @@ void NiceBusT4::loop() {
 
     if ((millis() - this->last_update_) > 1000) {    // каждые 10 секунд
     
-    Serial.updateBaudRate(9200);
+    Serial.updateBaudRate(BAUD_BREAK);
     Serial.write("01234", 5);
     delay(90);
-    Serial.updateBaudRate(19200);
+    Serial.updateBaudRate(BAUD_WORK);
     Serial.write("01234", 5);
     
     
