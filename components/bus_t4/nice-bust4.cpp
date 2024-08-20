@@ -136,8 +136,8 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
   uint8_t *data = &this->rx_message_[0];               // указатель на первый байт сообщения
   uint8_t new_byte = data[at];                      // последний полученный байт
 
-  std::string pretty_cmd1 = format_hex_pretty(rx_message_);
-  ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd1.c_str() );
+//  std::string pretty_cmd1 = format_hex_pretty(rx_message_);
+//  ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd1.c_str() );
 
   // Byte 0: HEADER1 (всегда 0x00)
   if (at == 0xE0)
