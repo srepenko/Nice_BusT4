@@ -2,8 +2,8 @@
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"  // для использования вспомогательных функция работ со строками
 //#include "esphome/components/uart/uart.h"
-//#include <Arduino.h>
-//#include <HardwareSerial.h>
+#include <Arduino.h>
+#include <HardwareSerial.h>
 
 namespace esphome {
 namespace bus_t4 {
@@ -68,7 +68,7 @@ void NiceBusT4::setup() {
   //_uart =  uart_init(_UART_NO, BAUD_WORK, SERIAL_8N1, SERIAL_FULL, TX_P, 256, false);
   // unsigned long baud, uint32_t config = SERIAL_8N1, int8_t rxPin = -1, int8_t txPin = -1, bool invert = false, unsigned long timeout_ms = 20000UL,
   //Serial.begin(BAUD_WORK, SERIAL_8N1, rxPin, txPin, false, 256);
-  //Serial1.begin(BAUD_WORK, SERIAL_8N1, this->rx_pin, this->tx_pin);
+  Serial1.begin(BAUD_WORK, SERIAL_8N1, this->rx_pin, this->tx_pin);
 //  delay (500);
   //  this->last_init_command_ = 0;
   // кто в сети?
@@ -897,31 +897,19 @@ void NiceBusT4::send_array_cmd (std::vector<uint8_t> data) {          // отп�
   return send_array_cmd((const uint8_t *)data.data(), data.size());
 }
 void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
-  uint32_t baudrate = BAUD_WORK;
-  uint8_t dummy = 0x00;
-  uint8_t lin_uart_num = 1;
-  uart_flush_input(lin_uart_num);
-  uart_get_baudrate(lin_uart_num, &baudrate);
-  uart_set_baudrate(lin_uart_num, LIN_BREAK_BAUDRATE(baudrate));
-  uart_write_bytes(lin_uart_num, (char *)&dummy, 1);
-  uart_wait_tx_done(lin_uart_num, 2);
-  uart_wait_tx_done(lin_uart_num, 2);
-  uart_set_baudrate(lin_uart_num, baudrate);
-  uart_write_bytes(lin_uart_num, data, len);
-
   // отправка данных в uart
-  //char br_ch = 0x00;                                               // для break
-  //Serial1.flush();
+  char br_ch = 0x00;                                               // для break
+  Serial1.flush();
   //uart_set_line_inverse(param_ptr_config->uart_port_num, UART_INVERSE_TXD);
   //ets_delay_us(1250);
   //uart_set_line_inverse(param_ptr_config->uart_port_num, UART_INVERSE_DISABLE)
-  //Serial1.updateBaudRate(BAUD_BREAK);
-  //Serial1.write(&br_ch, 1);                                         // отправляем ноль на низкой скорости, длиинный ноль
+  Serial1.updateBaudRate(BAUD_BREAK);
+  Serial1.write(&br_ch, 1);                                         // отправляем ноль на низкой скорости, длиинный ноль
   //Serial1.flush();
-  //delayMicroseconds(90);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
-  //Serial1.updateBaudRate(BAUD_WORK);
-  //Serial1.write(data, len);  
-  //Serial1.flush();
+  delayMicroseconds(90);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
+  Serial1.updateBaudRate(BAUD_WORK);
+  Serial1.write(data, len);  
+  Serial1.flush();
   //Microseconds  bit   byte
   //19200	        52	  521
   //delayMicroseconds(521*len);
