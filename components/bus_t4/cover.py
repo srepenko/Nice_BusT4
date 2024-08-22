@@ -4,7 +4,7 @@ from esphome.components import cover
 from esphome.components import uart
 from esphome.const import CONF_ADDRESS, CONF_ID, CONF_UPDATE_INTERVAL, CONF_USE_ADDRESS, CONF_RX_PIN, CONF_TX_PIN
 
-
+DEPENDENCIES = ["uart"]
 
 bus_t4_ns = cg.esphome_ns.namespace('bus_t4')
 Nice = bus_t4_ns.class_('NiceBusT4', cover.Cover, cg.Component, uart.IDFUARTComponent)
