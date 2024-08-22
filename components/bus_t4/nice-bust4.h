@@ -48,6 +48,7 @@ BusT4                       ESP8266
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"           // для добавления Action
 #include "esphome/components/cover/cover.h"
+#include "esphome/components/uart/uart_component_esp_idf.h"
 //#include "esphome/components/uart/uart.h"
 //#include <HardwareSerial.h>
 #include "esphome/core/helpers.h"              // парсим строки встроенными инструментами
@@ -370,7 +371,7 @@ struct packet_rsp_body_t {
 
 
 // создаю класс, наследую членов классов Component и Cover
-class NiceBusT4 : public Component, public Cover{
+class NiceBusT4 : public Component, public Cover, public uart::IDFUARTComponent{
 //class NiceBusT4 : public uart::UARTDevice, public Component, public Cover {
   public:
 	
