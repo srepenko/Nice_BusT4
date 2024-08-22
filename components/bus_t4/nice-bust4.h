@@ -371,7 +371,7 @@ struct packet_rsp_body_t {
 #define LIN_BREAK_BAUDRATE(BAUD) ((BAUD * 9) / 13)
 
 // создаю класс, наследую членов классов Component и Cover
-class NiceBusT4 : public Cover, public uart::IDFUARTComponent{
+class NiceBusT4 : public Cover, public uart::IDFUARTComponent, public uart::UARTDevice{
 //class NiceBusT4 : public Component, public Cover {
   public:
 	
