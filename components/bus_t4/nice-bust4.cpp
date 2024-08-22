@@ -1,7 +1,7 @@
 #include "nice-bust4.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"  // для использования вспомогательных функция работ со строками
-//#include "esphome/components/uart/uart.h"
+#include "esphome/components/uart/uart.h"
 //#include <Arduino.h>
 //#include <HardwareSerial.h>
 
