@@ -7,7 +7,7 @@ from esphome.const import CONF_ADDRESS, CONF_ID, CONF_UPDATE_INTERVAL, CONF_USE_
 DEPENDENCIES = ["uart"]
 
 bus_t4_ns = cg.esphome_ns.namespace('bus_t4')
-Nice = bus_t4_ns.class_('NiceBusT4', cover.Cover, cg.Component, uart.UartDevice)
+Nice = bus_t4_ns.class_('NiceBusT4', cover.Cover, cg.Component, uart.UARTDevice)
 
 CONFIG_SCHEMA = cover.COVER_SCHEMA.extend({
     cv.GenerateID(): cv.declare_id(Nice),
