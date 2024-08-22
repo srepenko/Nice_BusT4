@@ -899,7 +899,7 @@ void NiceBusT4::send_array_cmd (std::vector<uint8_t> data) {          // отп�
 void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   uint32_t baudrate = BAUD_WORK;
   uint8_t dummy = 0x00;
-  uint8_t lin_uart_num = 0;
+  uint8_t lin_uart_num = uart::IDFUARTComponent.uart_num_;
   uart_flush_input(lin_uart_num);
   uart_get_baudrate(lin_uart_num, &baudrate);
   uart_set_baudrate(lin_uart_num, LIN_BREAK_BAUDRATE(baudrate));
