@@ -900,6 +900,9 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   // отправка данных в uart
   char br_ch = 0x00;                                               // для break
   Serial1.flush();
+  //uart_set_line_inverse(param_ptr_config->uart_port_num, UART_INVERSE_TXD);
+  //ets_delay_us(1250);
+  //uart_set_line_inverse(param_ptr_config->uart_port_num, UART_INVERSE_DISABLE)
   Serial1.updateBaudRate(BAUD_BREAK);
   Serial1.write(&br_ch, 1);                                         // отправляем ноль на низкой скорости, длиинный ноль
   //Serial1.flush();
