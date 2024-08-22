@@ -897,6 +897,7 @@ void NiceBusT4::send_array_cmd (std::vector<uint8_t> data) {          // отп�
   return send_array_cmd((const uint8_t *)data.data(), data.size());
 }
 void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
+  uint32_t baudrate = BAUD_WORK;
   uint8_t dummy = 0x00;
   uint8_t lin_uart_num = this->parent_->uart_num_;
   uart_flush_input(lin_uart_num);
