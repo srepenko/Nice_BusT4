@@ -1,5 +1,6 @@
 substitutions:
-  name: nice-wifi
+  name: nice-bust4
+  #name: nice-wifi
   device_description: ""
   external_components_source: github://srepenko/Nice_BusT4@main
 
@@ -14,7 +15,8 @@ esp32:
   variant: ESP32C3
   board: esp32-c3-devkitm-1
   framework:
-    type: esp-idf
+    type: arduino
+    #type: esp-idf
     
 
 external_components:
@@ -24,18 +26,17 @@ external_components:
 # Enable logging
 logger:
   level: DEBUG
-  tx_buffer_size: 2048
-  #baud_rate: 0
+  #tx_buffer_size: 2048
+  baud_rate: 0
 
 ota:
   - platform: esphome
-    password: "ccfa7b9eb2f5f3090337e4b416f3378c"
+    password: !secret esphome_ota_key
+    
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  #ssid: "KTM"
-  #password: "qawsedrf"
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
@@ -45,16 +46,17 @@ wifi:
 captive_portal:
 
 web_server:
+  version: 3
 #  js_include: "www.js"
 #  js_url: ""
 #  version: 2  
 # Enable Home Assistant API
 
-uart:
-  id: uart_0
-  baud_rate: 19200
-  tx_pin: GPIO21
-  rx_pin: GPIO20
+#uart:
+#  id: uart_0
+#  baud_rate: 19200
+#  tx_pin: GPIO21
+#  rx_pin: GPIO20
 
 # Set statul led
 status_led:
@@ -64,6 +66,8 @@ status_led:
 
 # Enable Home Assistant API
 api:
+  encryption:
+    key: !secret esphome_encryption_key
 #  reboot_timeout: 0s # иначе перезагружается при отключении от hassio  
   services:
 # для отправки hex команд на привод
@@ -170,6 +174,10 @@ cover:
   name: "Nice Cover"
   device_class: gate
   id: nice_cover
+#  tx_pin: 43            # S3
+#  rx_pin: 44            # S3
+  tx_pin: 21             # C3
+  rx_pin: 20             # C3
 #  address: 0x0003            # адрес привода
 #  use_address: 0x0081        # адрес шлюза
 
