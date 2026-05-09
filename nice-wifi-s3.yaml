@@ -1,0 +1,171 @@
+substitutions:
+  name: nice-bust4-s3
+  device_description: "Nice Bus T4 gateway — ESP32-S3"
+  external_components_source: github://srepenko/Nice_BusT4@main
+
+esphome:
+  name: ${name}
+  comment: ${device_description}
+  platformio_options:
+    # S3 поддерживает 80 МГц флэш и режим QIO для более быстрой загрузки прошивки
+    board_build.f_flash: 80000000L
+    board_build.flash_mode: qio
+    board_build.flash_size: 4MB
+
+esp32:
+  variant: ESP32S3
+  board: esp32-s3-devkitc-1
+  framework:
+    type: arduino
+    # Минимальная версия Arduino core с полноценной поддержкой S3
+    version: recommended
+
+external_components:
+  - source: ${external_components_source}
+    refresh: 0s
+
+logger:
+  level: DEBUG
+  # На S3 UART0 (GPIO43/44) занят мостом USB↔UART или USB-CDC.
+  # baud_rate: 0 отключает вывод логов через UART, оставляя их только в Home Assistant.
+  # Если используется USB-CDC (нативный USB), логи будут видны через него автоматически.
+  baud_rate: 0
+
+ota:
+  - platform: esphome
+    password: !secret esphome_ota_key
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Gate S3 Fallback"
+    password: "rJH9KDSki23h"
+
+captive_portal:
+
+web_server:
+  version: 3
+
+# -----------------------------------------------------------------------
+# Пины ESP32-S3:
+#   GPIO43 / GPIO44 — UART0 (мост USB↔UART), не использовать для Serial1
+#   GPIO19 / GPIO20 — USB D− / D+ (нативный USB), не использовать
+#   GPIO35 / GPIO36 / GPIO37 — SPI PSRAM на некоторых модулях, проверить
+#
+# Рекомендуемые пины для Serial1 (UART1):
+#   TX → GPIO17, RX → GPIO18  (свободны на стандартном DevKitC-1)
+#   Можно переназначить на любой GPIO через матрицу GPIO.
+# -----------------------------------------------------------------------
+
+status_led:
+  pin:
+    # GPIO2 — обычно свободен на ESP32-S3-DevKitC-1.
+    # Если на вашей плате нет светодиода, закомментируйте этот раздел.
+    number: GPIO2
+    inverted: false
+
+api:
+  encryption:
+    key: !secret esphome_encryption_key
+  services:
+    - service: raw_command
+      variables:
+          raw_cmd: string
+      then:
+        lambda: |-
+           nice_cover -> NiceBusT4::send_raw_cmd(raw_cmd);
+
+    - service: send_inf_command
+      variables:
+         to_addr: string
+         whose: string
+         command: string
+         type_command: string
+         next_data: string
+         data_on: bool
+         data_command: string
+      then:
+        lambda: |-
+          nice_cover -> NiceBusT4::send_inf_cmd(to_addr, whose, command, type_command, next_data, data_on, data_command);
+
+    - service: gate_length_recognition
+      then:
+        lambda: |-
+           nice_cover -> NiceBusT4::set_mcu("0b","01");
+
+    - service: devices_recognition
+      then:
+        lambda: |-
+           nice_cover -> NiceBusT4::set_mcu("0a","01");
+
+    - service: closing_force
+      variables:
+        force: string
+      then:
+        lambda: |-
+           nice_cover -> NiceBusT4::set_mcu("4b", force);
+
+    - service: opening_force
+      variables:
+        force: string
+      then:
+        lambda: |-
+           nice_cover -> NiceBusT4::set_mcu("4a", force);
+
+button:
+  - platform: template
+    name: Пошагово
+    id: sbs
+    on_press:
+      lambda: |-
+           nice_cover -> NiceBusT4::send_cmd(bus_t4::SBS);
+
+  - platform: template
+    name: Статус входов
+    id: in_stat
+    on_press:
+      lambda: |-
+           nice_cover -> NiceBusT4::send_raw_cmd("55.0D.00.03.00.66.08.06.6B.04.D0.99.00.00.4D.0D");
+
+  - platform: template
+    name: Частичное открытие 1
+    id: p_opn1
+    on_press:
+      lambda: |-
+         nice_cover -> NiceBusT4::send_cmd(bus_t4::P_OPN1);
+
+cover:
+  - platform: bus_t4
+    name: "Nice Cover"
+    device_class: gate
+    id: nice_cover
+    tx_pin: 17   # GPIO17 — Serial1 TX (S3)
+    rx_pin: 18   # GPIO18 — Serial1 RX (S3)
+    # address: 0x0003      # адрес привода (если известен)
+    # use_address: 0x0081  # адрес шлюза (если нужно переопределить)
+    # oxi_address: 0x000A  # адрес приёмника OXI
+
+switch:
+  - platform: template
+    name: "Автозакрытие"
+    id: autoclose
+    restore_mode: DISABLED
+    lambda: |-
+      if (nice_cover -> NiceBusT4::autocls_flag) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+      lambda: |-
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "80", "a9", "00", true, "01");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "84", "a9", "00", true, "01");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "80", "99", "00", true, "01");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "84", "99", "00", true, "01");
+    turn_off_action:
+      lambda: |-
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "80", "a9", "00", true, "00");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "84", "a9", "00", true, "00");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "80", "99", "00", true, "01");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "84", "99", "00", true, "01");

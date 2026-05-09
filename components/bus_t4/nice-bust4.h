@@ -269,6 +269,8 @@ enum control_cmd : uint8_t {
   P_OPN4 = 0x0b, /* Partial opening 4 - Коллективно */
   P_OPN5 = 0x0c, /* Partial opening 5 - Приоритет пошагово */
   P_OPN6 = 0x0d, /* Partial opening 6 - Открыть и блокировать */
+  // TODO: уточнить реальное значение команды UNLK_OPN по документации Nice.
+  // Текущее значение 0x19 дублирует RSP — возможна ошибка в спецификации.
   UNLK_OPN = 0x19, /* Разблокировать и открыть */
   CLS_LOCK = 0x0E, /* Закрыть и блокировать */
   UNLCK_CLS = 0x1A, /*  Разблокировать и Закрыть */
@@ -423,13 +425,10 @@ class NiceBusT4 : public Component, public Cover{
     uint8_t class_gate_ = 0x55; // 0x01 sliding, 0x02 sectional, 0x03 swing, 0x04 barrier, 0x05 up-and-over
 //    uint8_t last_init_command_;
 	
-    bool init_cu_flag = false;	
-    bool init_oxi_flag = false;	
+
 
 	
     // переменные для uart
-    uint8_t _uart_nr;
-    //uart_t* _uart = nullptr;
     uint16_t _max_opn = 0;  // максимальная позиция энкодера или таймера
     uint16_t _pos_opn = 2048;  // позиция открытия энкодера или таймера, не для всех приводов.
     uint16_t _pos_cls = 0;  // позиция закрытия энкодера или таймера, не для всех приводов

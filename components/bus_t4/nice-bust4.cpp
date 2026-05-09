@@ -79,7 +79,7 @@ void NiceBusT4::setup() {
 
 void NiceBusT4::loop() {
 
-    if ((millis() - this->last_update_) > 5000) {    // каждые 10 секунд   
+    if ((millis() - this->last_update_) > 5000) {    // каждые 5 секунд   
 // если привод не определился с первого раза, попробуем позже
         std::vector<uint8_t> unknown = {0x55, 0x55};
         if (this->init_ok == false) {
@@ -123,6 +123,11 @@ void NiceBusT4::loop() {
 
 
 void NiceBusT4::handle_char_(uint8_t c) {
+  // Защита от накопления мусора: максимальный пакет Bus T4 значительно меньше 128 байт
+  if (this->rx_message_.size() >= 128) {
+    ESP_LOGW(TAG, "RX buffer overflow, clearing");
+    this->rx_message_.clear();
+  }
   this->rx_message_.push_back(c);                      // кидаем байт в конец полученного сообщения
   if (!this->validate_message_()) {                    // проверяем получившееся сообщение
     this->rx_message_.clear();                         // если проверка не прошла, то в сообщении мусор, нужно удалить
@@ -173,7 +178,7 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
     if (data[9] != crc1) {
       ESP_LOGW(TAG, "Received invalid message checksum 1 %02X!=%02X", data[9], crc1);
       std::string pretty_cmd1 = format_hex_pretty(rx_message_);
-      ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd1.c_str() );
+      ESP_LOGD(TAG,  "Получен пакет: %s ", pretty_cmd1.c_str() );
       return false;
     }
   // Byte 10:
@@ -192,7 +197,7 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
   if (data[length - 1] != crc2 ) {
     ESP_LOGW(TAG, "Received invalid message checksum 2 %02X!=%02X", data[length - 1], crc2);
     std::string pretty_cmd1 = format_hex_pretty(rx_message_);
-    ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd1.c_str() );
+    ESP_LOGD(TAG,  "Получен пакет: %s ", pretty_cmd1.c_str() );
     return false;
   }
 
@@ -201,7 +206,7 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
   if (data[length] != packet_size ) {
     ESP_LOGW(TAG, "Received invalid message size %02X!=%02X", data[length], packet_size);
     std::string pretty_cmd1 = format_hex_pretty(rx_message_);
-    ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd1.c_str() );
+    ESP_LOGD(TAG,  "Получен пакет: %s ", pretty_cmd1.c_str() );
     return false;
   }
 
@@ -212,7 +217,7 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
 
   // для вывода пакета в лог
   std::string pretty_cmd = format_hex_pretty(rx_message_);
-  ESP_LOGI(TAG,  "Получен пакет: %S ", pretty_cmd.c_str() );
+  ESP_LOGI(TAG,  "Получен пакет: %s ", pretty_cmd.c_str() );
 
   // здесь что-то делаем с сообщением
   parse_status_packet(rx_message_);
@@ -235,9 +240,9 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
     ESP_LOGD(TAG, "Получен пакет EVT с данными. Последняя ячейка %d ", data[12]);
     std::vector<uint8_t> vec_data(this->rx_message_.begin() + 14, this->rx_message_.end() - 2);
     std::string str(this->rx_message_.begin() + 14, this->rx_message_.end() - 2);
-    ESP_LOGI(TAG,  "Строка с данными: %S ", str.c_str() );
+    ESP_LOGI(TAG,  "Строка с данными: %s ", str.c_str() );
     std::string pretty_data = format_hex_pretty(vec_data);
-    ESP_LOGI(TAG,  "Данные HEX %S ", pretty_data.c_str() );
+    ESP_LOGI(TAG,  "Данные HEX %s ", pretty_data.c_str() );
     // получили пакет с данными EVT, начинаем разбирать
 
     if ((data[6] == INF) && (data[9] == FOR_CU)  && (data[11] == GET - 0x80) && (data[13] == NOERR)) { // интересуют ответы на запросы GET, пришедшие без ошибок от привода
@@ -319,8 +324,15 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
           else {
             this->_pos_usl = (data[14] << 8) + data[15];
           }
-          this->position = (_pos_usl - _pos_cls) * 1.0f / (_pos_opn - _pos_cls);
-          ESP_LOGI(TAG, "Условное положение ворот: %d, положение в %%: %f", _pos_usl, (_pos_usl - _pos_cls) * 100.0f / (_pos_opn - _pos_cls));
+          if (_pos_opn != _pos_cls) {
+            float pos = ((int32_t)_pos_usl - (int32_t)_pos_cls) * 1.0f /
+                        ((int32_t)_pos_opn  - (int32_t)_pos_cls);
+            this->position = pos < 0.0f ? 0.0f : (pos > 1.0f ? 1.0f : pos);
+            ESP_LOGI(TAG, "Условное положение ворот: %d, положение в %%: %.1f",
+                     _pos_usl,
+                     ((int32_t)_pos_usl - (int32_t)_pos_cls) * 100.0f /
+                     ((int32_t)_pos_opn  - (int32_t)_pos_cls));
+          }
           this->publish_state();  // публикуем состояние
           break;
 
@@ -397,21 +409,21 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
 
       switch (data[10]) {
         case MAN:
-          //       ESP_LOGCONFIG(TAG, "  Производитель: %S ", str.c_str());
+          //       ESP_LOGCONFIG(TAG, "  Производитель: %s ", str.c_str());
           this->manufacturer_.assign(this->rx_message_.begin() + 14, this->rx_message_.end() - 2);
           break;
         case PRD:
           if (((uint8_t)(this->oxi_addr >> 8) == data[4]) && ((uint8_t)(this->oxi_addr & 0xFF) == data[5])) { // если пакет от приемника
-//            ESP_LOGCONFIG(TAG, "  Приёмник: %S ", str.c_str());
+//            ESP_LOGCONFIG(TAG, "  Приёмник: %s ", str.c_str());
             this->oxi_product.assign(this->rx_message_.begin() + 14, this->rx_message_.end() - 2);
           } // если пакет от приемника
           else if (((uint8_t)(this->to_addr >> 8) == data[4]) && ((uint8_t)(this->to_addr & 0xFF) == data[5])) { // если пакет от контроллера привода
-//            ESP_LOGCONFIG(TAG, "  Привод: %S ", str.c_str());
+//            ESP_LOGCONFIG(TAG, "  Привод: %s ", str.c_str());
             this->product_.assign(this->rx_message_.begin() + 14, this->rx_message_.end() - 2);
             std::vector<uint8_t> wla1 = {0x57,0x4C,0x41,0x31,0x00,0x06,0x57}; // для понимания, что привод Walky
             if (this->product_ == wla1) { 
               this->is_walky = true;
-         //     ESP_LOGCONFIG(TAG, "  Привод WALKY!: %S ", str.c_str());
+         //     ESP_LOGCONFIG(TAG, "  Привод WALKY!: %s ", str.c_str());
                                         }
           }
           break;
@@ -473,9 +485,9 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
     ESP_LOGD(TAG, "Получен пакет RSP");
     std::vector<uint8_t> vec_data(this->rx_message_.begin() + 12, this->rx_message_.end() - 3);
     std::string str(this->rx_message_.begin() + 12, this->rx_message_.end() - 3);
-    ESP_LOGI(TAG,  "Строка с данными: %S ", str.c_str() );
+    ESP_LOGI(TAG,  "Строка с данными: %s ", str.c_str() );
     std::string pretty_data = format_hex_pretty(vec_data);
-    ESP_LOGI(TAG,  "Данные HEX %S ", pretty_data.c_str() );
+    ESP_LOGI(TAG,  "Данные HEX %s ", pretty_data.c_str() );
     switch (data[9]) { // cmd_mnu
       case FOR_CU:
         ESP_LOGI(TAG,  "Пакет контроллера привода" );
@@ -571,8 +583,15 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
             } // switch sub_run_cmd2
 
             this->_pos_usl = (data[12] << 8) + data[13];
-            this->position = (_pos_usl - _pos_cls) * 1.0f / (_pos_opn - _pos_cls);
-            ESP_LOGD(TAG, "Условное положение ворот: %d, положение в %%: %f", _pos_usl, (_pos_usl - _pos_cls) * 100.0f / (_pos_opn - _pos_cls));
+            if (_pos_opn != _pos_cls) {
+              float pos = ((int32_t)_pos_usl - (int32_t)_pos_cls) * 1.0f /
+                          ((int32_t)_pos_opn  - (int32_t)_pos_cls);
+              this->position = pos < 0.0f ? 0.0f : (pos > 1.0f ? 1.0f : pos);
+              ESP_LOGD(TAG, "Условное положение ворот: %d, положение в %%: %.1f",
+                       _pos_usl,
+                       ((int32_t)_pos_usl - (int32_t)_pos_cls) * 100.0f /
+                       ((int32_t)_pos_opn  - (int32_t)_pos_cls));
+            }
             this->publish_state();  // публикуем состояние
 
             break; //STA
@@ -760,19 +779,19 @@ void NiceBusT4::dump_config() {    //  добавляем в  лог инфор�
   ESP_LOGCONFIG(TAG, "  Положение закрытых ворот: %d", this->_pos_cls);
 
   std::string manuf_str(this->manufacturer_.begin(), this->manufacturer_.end());
-  ESP_LOGCONFIG(TAG, "  Производитель: %S ", manuf_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Производитель: %s ", manuf_str.c_str());
 
   std::string prod_str(this->product_.begin(), this->product_.end());
-  ESP_LOGCONFIG(TAG, "  Привод: %S ", prod_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Привод: %s ", prod_str.c_str());
 
   std::string hard_str(this->hardware_.begin(), this->hardware_.end());
-  ESP_LOGCONFIG(TAG, "  Железо привода: %S ", hard_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Железо привода: %s ", hard_str.c_str());
 
   std::string firm_str(this->firmware_.begin(), this->firmware_.end());
-  ESP_LOGCONFIG(TAG, "  Прошивка привода: %S ", firm_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Прошивка привода: %s ", firm_str.c_str());
   
   std::string dsc_str(this->description_.begin(), this->description_.end());
-  ESP_LOGCONFIG(TAG, "  Описание привода: %S ", dsc_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Описание привода: %s ", dsc_str.c_str());
 
 
   ESP_LOGCONFIG(TAG, "  Адрес шлюза: 0x%04X", from_addr);
@@ -780,20 +799,20 @@ void NiceBusT4::dump_config() {    //  добавляем в  лог инфор�
   ESP_LOGCONFIG(TAG, "  Адрес приёмника: 0x%04X", oxi_addr);
   
   std::string oxi_prod_str(this->oxi_product.begin(), this->oxi_product.end());
-  ESP_LOGCONFIG(TAG, "  Приёмник: %S ", oxi_prod_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Приёмник: %s ", oxi_prod_str.c_str());
   
   std::string oxi_hard_str(this->oxi_hardware.begin(), this->oxi_hardware.end());
-  ESP_LOGCONFIG(TAG, "  Железо приёмника: %S ", oxi_hard_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Железо приёмника: %s ", oxi_hard_str.c_str());
 
   std::string oxi_firm_str(this->oxi_firmware.begin(), this->oxi_firmware.end());
-  ESP_LOGCONFIG(TAG, "  Прошивка приёмника: %S ", oxi_firm_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Прошивка приёмника: %s ", oxi_firm_str.c_str());
   
   std::string oxi_dsc_str(this->oxi_description.begin(), this->oxi_description.end());
-  ESP_LOGCONFIG(TAG, "  Описание приёмника: %S ", oxi_dsc_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Описание приёмника: %s ", oxi_dsc_str.c_str());
  
-  ESP_LOGCONFIG(TAG, "  Автозакрытие - L1: %S ", autocls_flag ? "Да" : "Нет");
-  ESP_LOGCONFIG(TAG, "  Закрыть после фото - L2: %S ", photocls_flag ? "Да" : "Нет");
-  ESP_LOGCONFIG(TAG, "  Всегда закрывать - L3: %S ", alwayscls_flag ? "Да" : "Нет");
+  ESP_LOGCONFIG(TAG, "  Автозакрытие - L1: %s ", autocls_flag ? "Да" : "Нет");
+  ESP_LOGCONFIG(TAG, "  Закрыть после фото - L2: %s ", photocls_flag ? "Да" : "Нет");
+  ESP_LOGCONFIG(TAG, "  Всегда закрывать - L3: %s ", alwayscls_flag ? "Да" : "Нет");
   
 }
 
@@ -820,7 +839,7 @@ std::vector<uint8_t> NiceBusT4::gen_control_cmd(const uint8_t control_cmd) {
 
   // для вывода команды в лог
   //  std::string pretty_cmd = format_hex_pretty(frame);
-  //  ESP_LOGI(TAG,  "Сформирована команда: %S ", pretty_cmd.c_str() );
+  //  ESP_LOGI(TAG,  "Сформирована команда: %s ", pretty_cmd.c_str() );
 
   return frame;
 }
@@ -852,7 +871,7 @@ std::vector<uint8_t> NiceBusT4::gen_inf_cmd(const uint8_t to_addr1, const uint8_
 
   // для вывода команды в лог
   //  std::string pretty_cmd = format_hex_pretty(frame);
-  //  ESP_LOGI(TAG,  "Сформирован INF пакет: %S ", pretty_cmd.c_str() );
+  //  ESP_LOGI(TAG,  "Сформирован INF пакет: %s ", pretty_cmd.c_str() );
 
   return frame;
 
@@ -915,7 +934,7 @@ void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
   //delayMicroseconds(521*len);
   //uart_wait_tx_empty(_uart);                                       // ждем завершения отправки
   std::string pretty_cmd = format_hex_pretty((uint8_t*)&data[0], len);                    // для вывода команды в лог
-  ESP_LOGI(TAG,  "Отправлено: %S ", pretty_cmd.c_str() );
+  ESP_LOGI(TAG,  "Отправлено: %s ", pretty_cmd.c_str() );
 
 }
 
@@ -941,7 +960,7 @@ void NiceBusT4::send_inf_cmd(std::string to_addr, std::string whose, std::string
 void NiceBusT4::set_mcu(std::string command, std::string data_command) {
     std::vector < uint8_t > v_command = raw_cmd_prepare (command);
     std::vector < uint8_t > v_data_command = raw_cmd_prepare (data_command);
-    tx_buffer_.push(gen_inf_cmd(0x04, v_command[0], 0xa9, 0x00, v_data_command));
+    tx_buffer_.push(gen_inf_cmd(FOR_CU, v_command[0], SET, 0x00, v_data_command));
   }
   
 // инициализация устройства
