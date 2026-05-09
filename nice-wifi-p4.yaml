@@ -1,0 +1,158 @@
+# ============================================================================
+#  Nice Bus T4  -  вариант под ESP32-P4 (целевая конфигурация + памятка)
+# ----------------------------------------------------------------------------
+#  ВНИМАНИЕ: ESP32-P4 НЕ ИМЕЕТ ВСТРОЕННОГО Wi-Fi/BT.
+#  Чтобы устройство было видно в Home Assistant, нужен внешний радио-чип
+#  (обычно ESP32-C6 или ESP32-C5), подключённый к P4 через SPI/SDIO как
+#  hosted-Wi-Fi (esp_wifi_remote / esp_hosted из ESP-IDF).
+#
+#  На момент 2026-Q1 в ESPHome ещё нет «штатного» переключателя для
+#  hosted-Wi-Fi: компонент wifi: ожидает родной радиоблок, поэтому
+#  YAML ниже - "целевой шаблон". Чтобы он реально собрался, нужно либо:
+#    1) дождаться поддержки esp_wifi_remote в ESPHome upstream, либо
+#    2) подключить внешний компонент-обёртку для esp_wifi_remote и
+#       инициализировать радиосопроцессор C6 вручную из manual_ip /
+#       custom_component.
+#
+#  Тестовая плата:  ESP32-P4-Function-EV-Board (с распаянным C6)
+#                   либо ESP32-P4-Nano + внешний ESP32-C6 модуль
+#  Framework:       esp-idf >= 5.3 (только)
+#
+#  Что P4 реально даёт нашему проекту:
+#    - Двухъядерный RISC-V 400 МГц, FPU, до 32 МБ PSRAM, до 16 МБ flash.
+#      Для шины 19200 бод это переизбыток - имеет смысл, только если
+#      рядом стоят:
+#        * MIPI-DSI экран (HMI на калитке)
+#        * USB-host (карта/модем)
+#        * TWAI/CAN-FD контроллер - можно держать одновременно с BusT4
+#  - Аппаратный TWAI/CAN, можно при желании сделать "честный CAN-мост"
+#    параллельно с BusT4.
+#
+#  Пины UART1 (один из вариантов, на разных платах разводка отличается):
+#    TX = GPIO11
+#    RX = GPIO10
+#  Status-LED:
+#    GPIO35 (на EV-Board распаян пользовательский LED)
+# ============================================================================
+
+substitutions:
+  name: nice-bust4-p4
+  device_description: "Nice Bus T4 gateway on ESP32-P4 (hosted Wi-Fi via C6)"
+  external_components_source: github://srepenko/Nice_BusT4@main
+
+esphome:
+  name: ${name}
+  comment: ${device_description}
+  platformio_options:
+    board_build.f_flash: 80000000L
+    board_build.flash_mode: qio
+    board_build.flash_size: 16MB
+
+esp32:
+  variant: ESP32P4
+  board: esp32-p4-evboard      # либо esp32-p4-nano - если такой board
+                                # уже добавлен в ваш platform-espressif32
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      # размер кучи побольше - под буферы DMA
+      CONFIG_SPIRAM: y
+      CONFIG_SPIRAM_MODE_HEX: y
+      CONFIG_COMPILER_OPTIMIZATION_PERF: y
+      # включаем WPA3/HE20 на co-MCU C6
+      CONFIG_ESP_WIFI_REMOTE_ENABLED: y
+      # по умолчанию транспорт SDIO; если на вашей плате SPI - меняйте
+      CONFIG_ESP_WIFI_REMOTE_LIBRARY_HOSTED: y
+
+external_components:
+  - source: ${external_components_source}
+    refresh: 0s
+
+logger:
+  level: DEBUG
+  baud_rate: 0     # лог через USB-Serial-JTAG; UART1 свободен под BusT4
+
+ota:
+  - platform: esphome
+    password: !secret esphome_ota_key
+
+# !!! ВАЖНО !!!
+# Этот блок предполагает, что esp_wifi_remote уже инициализирован
+# через external_component / sdkconfig. Если такого компонента нет,
+# wifi: завершится ошибкой "WiFi initialization failed" - это
+# ограничение ESPHome для P4, а не самой платформы.
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Gate Fallback Hotspot"
+    password: "rJH9KDSki23h"
+
+captive_portal:
+
+web_server:
+  version: 3
+
+status_led:
+  pin: GPIO35
+
+api:
+  encryption:
+    key: !secret esphome_encryption_key
+  services:
+    - service: raw_command
+      variables:
+        raw_cmd: string
+      then:
+        lambda: 'nice_cover -> NiceBusT4::send_raw_cmd(raw_cmd);'
+
+    - service: send_inf_command
+      variables:
+        to_addr: string
+        whose: string
+        command: string
+        type_command: string
+        next_data: string
+        data_on: bool
+        data_command: string
+      then:
+        lambda: |-
+          nice_cover -> NiceBusT4::send_inf_cmd(to_addr, whose, command, type_command, next_data, data_on, data_command);
+
+    - service: gate_length_recognition
+      then:
+        lambda: 'nice_cover -> NiceBusT4::set_mcu("0b","01");'
+
+    - service: devices_recognition
+      then:
+        lambda: 'nice_cover -> NiceBusT4::set_mcu("0a","01");'
+
+button:
+  - platform: template
+    name: "Пошагово"
+    id: sbs
+    on_press:
+      lambda: 'nice_cover -> NiceBusT4::send_cmd(bus_t4::SBS);'
+
+  - platform: restart
+    name: "Restart Gate"
+
+cover:
+  - platform: bus_t4
+    name: "Nice Cover"
+    device_class: gate
+    id: nice_cover
+    tx_pin: 11                 # ESP32-P4
+    rx_pin: 10                 # ESP32-P4
+    # address: 0x0003
+    # use_address: 0x0081
+
+# ----------------------------------------------------------------------------
+#  Резюме: брать P4 ради одной лишь шины Bus T4 - оверкилл.
+#  Имеет смысл, если параллельно нужны:
+#    - локальный экран (MIPI-DSI / RGB-LCD) для управления без HA,
+#    - "взрослый" CAN-FD/TWAI рядом с BusT4,
+#    - SD-карта/USB-host.
+#  Иначе оптимальный выбор - ESP32-S3 (если хочется запас) или ESP32-C6
+#  (если планируется Matter/Thread).
+# ----------------------------------------------------------------------------
