@@ -1,6 +1,5 @@
 substitutions:
   name: nice-bust4
-  #name: nice-wifi
   device_description: ""
   external_components_source: github://srepenko/Nice_BusT4@main
 
@@ -11,13 +10,61 @@ esphome:
     board_build.flash_mode: dio
     board_build.flash_size: 4MB
 
+# ============================================================
+# Выбор платформы — раскомментируйте нужный блок
+# ============================================================
+
+# --- ESP32-C3 (текущий вариант) ----------------------------
+# Недорогой RISC-V, WiFi 4, одно ядро. Проверен в работе.
+# GPIO20 = RX, GPIO21 = TX  (Serial1)
 esp32:
   variant: ESP32C3
   board: esp32-c3-devkitm-1
   framework:
     type: arduino
-    #type: esp-idf
-    
+
+# --- ESP32-S3 -----------------------------------------------
+# Xtensa dual-core, WiFi 4, больше RAM/Flash, USB-OTG.
+# Пины можно назначить на любой свободный GPIO.
+# Типичный выбор: GPIO17 = TX, GPIO18 = RX  (Serial1)
+# Раскомментируйте этот блок и закомментируйте блок C3 выше.
+#esp32:
+#  variant: ESP32S3
+#  board: esp32s3-devkitc-1
+#  framework:
+#    type: arduino
+#  platformio_options:
+#    board_build.f_flash: 80000000L
+#    board_build.flash_mode: qio
+#    board_build.flash_size: 8MB
+
+# --- ESP32-C6 -----------------------------------------------
+# RISC-V, WiFi 6 (802.11ax), Zigbee/Thread 802.15.4, одно ядро.
+# Улучшенная дальность/надёжность WiFi по сравнению с C3.
+# Типичный выбор: GPIO16 = TX, GPIO17 = RX  (Serial1)
+# Статус: поддержка Arduino stable начиная с arduino-esp32 3.x
+#esp32:
+#  variant: ESP32C6
+#  board: esp32-c6-devkitc-1
+#  framework:
+#    type: arduino
+#    version: recommended
+
+# --- ESP32-P4 -----------------------------------------------
+# ВНИМАНИЕ: ESP32-P4 НЕ имеет встроенного WiFi/BT.
+# Для работы с ESPHome требуется внешний WiFi-сопроцессор
+# (например, ESP32-C6 через SPI/SDIO — плата ESP32-P4-Function-EV-Board).
+# Поддержка ESPHome для P4 находится в статусе experimental (2025).
+# Для Bus T4 нет препятствий по UART — P4 имеет 5 аппаратных UART,
+# тайминги break через updateBaudRate работают аналогично другим чипам.
+# Когда появится стабильная поддержка:
+#esp32:
+#  variant: ESP32P4
+#  board: esp32p4-function-ev-board
+#  framework:
+#    type: esp-idf  # arduino для P4 пока не доступен в стабильном релизе
+# ============================================================
+
 
 external_components:
   - source: ${external_components_source}
@@ -174,12 +221,12 @@ cover:
   name: "Nice Cover"
   device_class: gate
   id: nice_cover
-#  tx_pin: 43            # S3
-#  rx_pin: 44            # S3
-  tx_pin: 21             # C3
-  rx_pin: 20             # C3
-#  address: 0x0003            # адрес привода
-#  use_address: 0x0081        # адрес шлюза
+  # Пины UART для Serial1 (назначаются на любой свободный GPIO):
+  tx_pin: 21   # ESP32-C3: GPIO21  |  ESP32-S3: GPIO17  |  ESP32-C6: GPIO16
+  rx_pin: 20   # ESP32-C3: GPIO20  |  ESP32-S3: GPIO18  |  ESP32-C6: GPIO17
+  # address: 0x0003     # адрес контроллера привода (авто-определяется через WHO)
+  # use_address: 0x0081 # адрес этого шлюза (по умолчанию 0x0066)
+  # oxi_address: 0x000A # адрес приёмника OXI (авто-определяется через WHO)
 
 # работаем с приёмником OXI
 

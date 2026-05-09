@@ -1,9 +1,10 @@
 #include "nice-bust4.h"
 #include "esphome/core/log.h"
-#include "esphome/core/helpers.h"  // для использования вспомогательных функция работ со строками
+#include "esphome/core/helpers.h"
 //#include "esphome/components/uart/uart.h"
 #include <Arduino.h>
 #include <HardwareSerial.h>
+#include <algorithm>
 
 namespace esphome {
 namespace bus_t4 {
@@ -78,54 +79,53 @@ void NiceBusT4::setup() {
 }
 
 void NiceBusT4::loop() {
-
-    if ((millis() - this->last_update_) > 5000) {    // каждые 10 секунд   
-// если привод не определился с первого раза, попробуем позже
-        std::vector<uint8_t> unknown = {0x55, 0x55};
-        if (this->init_ok == false) {
-          this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
-          this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00)); //запрос продукта
-        }        
-        else if (this->class_gate_ == 0x55) init_device((uint8_t)(this->to_addr >> 8), (uint8_t)(this->to_addr & 0xFF), 0x04);  
-        else if (this->manufacturer_ == unknown)  {
-         init_device((uint8_t)(this->to_addr >> 8), (uint8_t)(this->to_addr & 0xFF), 0x04);  
-        }
-        this->last_update_ = millis();
-    }  // if  каждую минуту
-
-
-
-  // разрешаем отправку каждые 100 ms
   const uint32_t now = millis();
-  if (now - this->last_uart_byte_ > 100) {
-    this->ready_to_tx_ = true;
-    this->last_uart_byte_ = now;
-  }
 
-
-  //while (uart_rx_available(_uart) > 0) {
-  while (Serial1.available() > 0) {
-    uint8_t c = Serial1.read();                // считываем байт
-    this->handle_char_(c);                                     // отправляем байт на обработку
-    this->last_uart_byte_ = now;
-  } //while
-
-  if (this->ready_to_tx_) {   // если можно отправлять
-    if (!this->tx_buffer_.empty()) {  // если есть что отправлять
-      this->send_array_cmd(this->tx_buffer_.front()); // отправляем первую команду в очереди
-      this->tx_buffer_.pop();
-      this->ready_to_tx_ = false;
+  // Периодический опрос: если привод не определился, повторяем WHO/PRD
+  if ((now - this->last_update_) > 5000) {
+    std::vector<uint8_t> unknown = {0x55, 0x55};
+    if (!this->init_ok) {
+      this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
+      this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, PRD, GET, 0x00));
+    } else if (this->class_gate_ == 0x55) {
+      init_device((uint8_t)(this->to_addr >> 8), (uint8_t)(this->to_addr & 0xFF), 0x04);
+    } else if (this->manufacturer_ == unknown) {
+      init_device((uint8_t)(this->to_addr >> 8), (uint8_t)(this->to_addr & 0xFF), 0x04);
     }
+    this->last_update_ = now;
   }
 
+  // Читаем все доступные байты с шины
+  while (Serial1.available() > 0) {
+    uint8_t c = Serial1.read();
+    this->handle_char_(c);
+    this->last_rx_byte_time_ = now;
+  }
+
+  // Отправляем следующую команду из очереди, если:
+  //  - шина тихая не менее RX_IDLE_BEFORE_TX_MS мс
+  //  - прошло не менее TX_MIN_INTERVAL_MS мс с предыдущей нашей отправки
+  bool bus_idle      = (now - this->last_rx_byte_time_) >= RX_IDLE_BEFORE_TX_MS;
+  bool tx_cooldown   = (now - this->last_tx_time_)      >= TX_MIN_INTERVAL_MS;
+
+  if (bus_idle && tx_cooldown && !this->tx_buffer_.empty()) {
+    this->send_array_cmd(this->tx_buffer_.front());
+    this->tx_buffer_.pop();
+    this->last_tx_time_ = now;
+  }
 
 } //loop
 
 
 void NiceBusT4::handle_char_(uint8_t c) {
-  this->rx_message_.push_back(c);                      // кидаем байт в конец полученного сообщения
-  if (!this->validate_message_()) {                    // проверяем получившееся сообщение
-    this->rx_message_.clear();                         // если проверка не прошла, то в сообщении мусор, нужно удалить
+  // Защита от зависания на мусорных данных с большим packet_size
+  if (this->rx_message_.size() >= MAX_RX_PACKET_SIZE) {
+    ESP_LOGW(TAG, "RX буфер переполнен (%d байт), сбрасываем", this->rx_message_.size());
+    this->rx_message_.clear();
+  }
+  this->rx_message_.push_back(c);
+  if (!this->validate_message_()) {
+    this->rx_message_.clear();
   }
 }
 
@@ -315,13 +315,18 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
         case CUR_POS:
           if (is_walky) {
             this->_pos_usl = data[15];
-          }
-          else {
+          } else {
             this->_pos_usl = (data[14] << 8) + data[15];
           }
-          this->position = (_pos_usl - _pos_cls) * 1.0f / (_pos_opn - _pos_cls);
-          ESP_LOGI(TAG, "Условное положение ворот: %d, положение в %%: %f", _pos_usl, (_pos_usl - _pos_cls) * 100.0f / (_pos_opn - _pos_cls));
-          this->publish_state();  // публикуем состояние
+          if (this->_pos_opn != this->_pos_cls) {
+            float raw_pos = (_pos_usl - _pos_cls) * 1.0f / (_pos_opn - _pos_cls);
+            this->position = std::max(0.0f, std::min(1.0f, raw_pos));
+            ESP_LOGI(TAG, "Условное положение ворот: %d, положение в %%: %.1f", _pos_usl,
+                     (_pos_usl - _pos_cls) * 100.0f / (_pos_opn - _pos_cls));
+          } else {
+            ESP_LOGW(TAG, "Позиции открытия и закрытия совпадают, положение не вычисляется");
+          }
+          this->publish_state();
           break;
 
         case 0x01:
@@ -571,9 +576,13 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
             } // switch sub_run_cmd2
 
             this->_pos_usl = (data[12] << 8) + data[13];
-            this->position = (_pos_usl - _pos_cls) * 1.0f / (_pos_opn - _pos_cls);
-            ESP_LOGD(TAG, "Условное положение ворот: %d, положение в %%: %f", _pos_usl, (_pos_usl - _pos_cls) * 100.0f / (_pos_opn - _pos_cls));
-            this->publish_state();  // публикуем состояние
+            if (this->_pos_opn != this->_pos_cls) {
+              float raw_pos = (_pos_usl - _pos_cls) * 1.0f / (_pos_opn - _pos_cls);
+              this->position = std::max(0.0f, std::min(1.0f, raw_pos));
+              ESP_LOGD(TAG, "Условное положение ворот: %d, положение в %%: %.1f", _pos_usl,
+                       (_pos_usl - _pos_cls) * 100.0f / (_pos_opn - _pos_cls));
+            }
+            this->publish_state();
 
             break; //STA
 
@@ -860,10 +869,8 @@ std::vector<uint8_t> NiceBusT4::gen_inf_cmd(const uint8_t to_addr1, const uint8_
 
 
 void NiceBusT4::send_raw_cmd(std::string data) {
-
-  std::vector < uint8_t > v_cmd = raw_cmd_prepare (data);
-  send_array_cmd (&v_cmd[0], v_cmd.size());
-
+  std::vector<uint8_t> v_cmd = raw_cmd_prepare(data);
+  this->tx_buffer_.push(v_cmd); // через очередь — не ломает тайминг шины
 }
 
 

@@ -65,9 +65,12 @@ using namespace esphome::cover;
 
 //static const int _UART_NO=UART0; /* номер uart */
 //static const int TX_P = 1;         /* пин Tx */
-static const uint32_t BAUD_BREAK = 9200; /* бодрэйт для длинного импульса перед пакетом */
-static const uint32_t BAUD_WORK = 19200; /* рабочий бодрэйт */
-static const uint8_t START_CODE = 0x55; /*стартовый байт пакета */
+static const uint32_t BAUD_BREAK = 9200;    /* бодрэйт для длинного импульса перед пакетом */
+static const uint32_t BAUD_WORK  = 19200;   /* рабочий бодрэйт */
+static const uint8_t  START_CODE = 0x55;    /* стартовый байт пакета */
+static const size_t   MAX_RX_PACKET_SIZE = 64; /* максимальный ожидаемый размер пакета */
+static const uint32_t RX_IDLE_BEFORE_TX_MS = 3;  /* мс тишины на шине перед отправкой */
+static const uint32_t TX_MIN_INTERVAL_MS   = 100; /* минимальный интервал между нашими отправками */
 
 
 /* сетевые настройки esp
@@ -375,10 +378,10 @@ class NiceBusT4 : public Component, public Cover{
   public:
 	
     // настройки привода
-    bool autocls_flag; // Автозакрывание - L1
-    bool photocls_flag; // Закрыть после фото - L2
-    bool alwayscls_flag; // Всегда закрывать - L3
-    bool init_ok = false; //  определение привода при включении
+    bool autocls_flag   = false; // Автозакрывание - L1
+    bool photocls_flag  = false; // Закрыть после фото - L2
+    bool alwayscls_flag = false; // Всегда закрывать - L3
+    bool init_ok  = false; // определение привода при включении
     bool is_walky = false; // для walky отличается команда запроса положения
 		
     void setup() override;
@@ -414,7 +417,8 @@ class NiceBusT4 : public Component, public Cover{
 
     uint32_t update_interval_{500};
     uint32_t last_update_{0};
-    uint32_t last_uart_byte_{0};
+    uint32_t last_rx_byte_time_{0}; // момент последнего принятого байта
+    uint32_t last_tx_time_{0};      // момент последней отправки
 
     uint8_t last_published_op_;
     float last_published_pos_;
@@ -427,17 +431,15 @@ class NiceBusT4 : public Component, public Cover{
     bool init_oxi_flag = false;	
 
 	
-    // переменные для uart
-    uint8_t _uart_nr;
-    //uart_t* _uart = nullptr;
-    uint16_t _max_opn = 0;  // максимальная позиция энкодера или таймера
-    uint16_t _pos_opn = 2048;  // позиция открытия энкодера или таймера, не для всех приводов.
-    uint16_t _pos_cls = 0;  // позиция закрытия энкодера или таймера, не для всех приводов
-    uint16_t _pos_usl = 0;  // условная текущая позиция энкодера или таймера, не для всех приводов	
+    uint16_t _max_opn = 0;    // максимальная позиция энкодера или таймера
+    uint16_t _pos_opn = 2048; // позиция открытия энкодера или таймера
+    uint16_t _pos_cls = 0;    // позиция закрытия энкодера или таймера
+    uint16_t _pos_usl = 0;    // условная текущая позиция энкодера или таймера
+
     // настройки заголовка формируемого пакета
-    uint16_t from_addr  = 0x0066; //от кого пакет, адрес bust4 шлюза
-    uint16_t to_addr; // = 0x00ff;	 // кому пакет, адрес контроллера привода, которым управляем
-    uint16_t oxi_addr; // = 0x000a;	 // адрес приемника
+    uint16_t from_addr = 0x0066; // адрес bust4 шлюза
+    uint16_t to_addr   = 0x00FF; // адрес контроллера привода (перезаписывается из ответа WHO)
+    uint16_t oxi_addr  = 0x000A; // адрес приемника OXI (перезаписывается из ответа WHO)
     uint8_t rx_pin;
     uint8_t tx_pin;
     
@@ -466,10 +468,9 @@ class NiceBusT4 : public Component, public Cover{
     void handle_datapoint_(const uint8_t *buffer, size_t len);          // обработчик полученных данных
     bool validate_message_();                                         // функция проверки полученного сообщения
 
-    std::vector<uint8_t> rx_message_;                          // здесь побайтно накапливается принятое сообщение
-    std::queue<std::vector<uint8_t>> tx_buffer_;             // очередь команд для отправки	
-    bool ready_to_tx_{true};	                           // флаг возможности отправлять команды
-	
+    std::vector<uint8_t> rx_message_;               // здесь побайтно накапливается принятое сообщение
+    std::queue<std::vector<uint8_t>> tx_buffer_;    // очередь команд для отправки
+
     std::vector<uint8_t> manufacturer_ = {0x55, 0x55};  // при инициализации неизвестный производитель
     std::vector<uint8_t> product_;
     std::vector<uint8_t> hardware_;
