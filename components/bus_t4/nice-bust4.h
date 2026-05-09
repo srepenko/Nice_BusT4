@@ -46,12 +46,18 @@ BusT4                       ESP8266
 
 #include "esphome.h"
 #include "esphome/core/component.h"
-#include "esphome/core/automation.h"           // для добавления Action
+#include "esphome/core/automation.h"
 #include "esphome/components/cover/cover.h"
-//#include "esphome/components/uart/uart.h"
-//#include <HardwareSerial.h>
-#include "esphome/core/helpers.h"              // парсим строки встроенными инструментами
-#include <queue>                               // для работы с очередью
+#include "esphome/core/helpers.h"
+#include <queue>
+#include <algorithm>
+
+#ifdef USE_ARDUINO
+#include <HardwareSerial.h>
+#endif
+#ifdef USE_ESP_IDF
+#include "driver/uart.h"
+#endif
 
 
 
@@ -63,11 +69,10 @@ using namespace esphome::cover;
 //using esp8266::timeoutTemplate::oneShotMs;
 
 
-//static const int _UART_NO=UART0; /* номер uart */
-//static const int TX_P = 1;         /* пин Tx */
-static const uint32_t BAUD_BREAK = 9200; /* бодрэйт для длинного импульса перед пакетом */
-static const uint32_t BAUD_WORK = 19200; /* рабочий бодрэйт */
-static const uint8_t START_CODE = 0x55; /*стартовый байт пакета */
+static const uint32_t BAUD_BREAK = 9200;      // baudrate для эмуляции break на Arduino
+static const uint32_t BAUD_WORK = 19200;      // рабочий baudrate Bus T4
+static const uint8_t START_CODE = 0x55;       // стартовый байт пакета
+static const uint32_t BREAK_DURATION_US = 520; // длительность break в мкс (~10 бит при 19200)
 
 
 /* сетевые настройки esp
@@ -399,6 +404,7 @@ class NiceBusT4 : public Component, public Cover{
 
     void set_rx_pin(uint8_t rx_pin) {this->rx_pin = rx_pin;}
     void set_tx_pin(uint8_t tx_pin) {this->tx_pin = tx_pin;}
+    void set_uart_nr(uint8_t uart_nr) {this->uart_nr_ = uart_nr;}
 
     
  /*   void set_update_interval(uint32_t update_interval) {  // интервал получения статуса привода
@@ -427,9 +433,13 @@ class NiceBusT4 : public Component, public Cover{
     bool init_oxi_flag = false;	
 
 	
-    // переменные для uart
-    uint8_t _uart_nr;
-    //uart_t* _uart = nullptr;
+    uint8_t uart_nr_{1};  // номер UART (1 = Serial1 / UART_NUM_1)
+#ifdef USE_ARDUINO
+    HardwareSerial *hw_serial_{nullptr};
+#endif
+#ifdef USE_ESP_IDF
+    uart_port_t idf_port_{UART_NUM_1};
+#endif
     uint16_t _max_opn = 0;  // максимальная позиция энкодера или таймера
     uint16_t _pos_opn = 2048;  // позиция открытия энкодера или таймера, не для всех приводов.
     uint16_t _pos_cls = 0;  // позиция закрытия энкодера или таймера, не для всех приводов

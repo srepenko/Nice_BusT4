@@ -1,9 +1,16 @@
 #include "nice-bust4.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"  // для использования вспомогательных функция работ со строками
-//#include "esphome/components/uart/uart.h"
+#ifdef USE_ARDUINO
 #include <Arduino.h>
 #include <HardwareSerial.h>
+#endif
+#ifdef USE_ESP_IDF
+#include "driver/uart.h"
+#include "hal/uart_ll.h"
+#include "soc/uart_periph.h"
+#include "esp_rom_sys.h"
+#endif
 
 namespace esphome {
 namespace bus_t4 {
@@ -64,17 +71,23 @@ void NiceBusT4::control(const CoverCall &call) {
 }
 
 void NiceBusT4::setup() {
-//  delay (5000);   // пока привод не стартанёт, на команды отвечать не будет
-  //_uart =  uart_init(_UART_NO, BAUD_WORK, SERIAL_8N1, SERIAL_FULL, TX_P, 256, false);
-  // unsigned long baud, uint32_t config = SERIAL_8N1, int8_t rxPin = -1, int8_t txPin = -1, bool invert = false, unsigned long timeout_ms = 20000UL,
-  //Serial.begin(BAUD_WORK, SERIAL_8N1, rxPin, txPin, false, 256);
-  Serial1.begin(BAUD_WORK, SERIAL_8N1, this->rx_pin, this->tx_pin);
-//  delay (500);
-  //  this->last_init_command_ = 0;
-  // кто в сети?
-//  this->tx_buffer_.push(gen_inf_cmd(0x00, 0xff, FOR_ALL, WHO, GET, 0x00));
-  
-
+#ifdef USE_ARDUINO
+  this->hw_serial_ = new HardwareSerial(this->uart_nr_);
+  this->hw_serial_->begin(BAUD_WORK, SERIAL_8N1, this->rx_pin, this->tx_pin);
+#endif
+#ifdef USE_ESP_IDF
+  uart_config_t uart_config = {};
+  uart_config.baud_rate = BAUD_WORK;
+  uart_config.data_bits = UART_DATA_8_BITS;
+  uart_config.parity    = UART_PARITY_DISABLE;
+  uart_config.stop_bits = UART_STOP_BITS_1;
+  uart_config.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
+  uart_config.source_clk = UART_SCLK_DEFAULT;
+  uart_driver_install((uart_port_t)this->uart_nr_, 512, 512, 0, nullptr, 0);
+  uart_param_config((uart_port_t)this->uart_nr_, &uart_config);
+  uart_set_pin((uart_port_t)this->uart_nr_, this->tx_pin, this->rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+  this->idf_port_ = (uart_port_t)this->uart_nr_;
+#endif
 }
 
 void NiceBusT4::loop() {
@@ -103,12 +116,20 @@ void NiceBusT4::loop() {
   }
 
 
-  //while (uart_rx_available(_uart) > 0) {
-  while (Serial1.available() > 0) {
-    uint8_t c = Serial1.read();                // считываем байт
-    this->handle_char_(c);                                     // отправляем байт на обработку
+#ifdef USE_ARDUINO
+  while (this->hw_serial_->available() > 0) {
+    uint8_t c = this->hw_serial_->read();
+    this->handle_char_(c);
     this->last_uart_byte_ = now;
-  } //while
+  }
+#endif
+#ifdef USE_ESP_IDF
+  uint8_t idf_byte;
+  while (uart_read_bytes(this->idf_port_, &idf_byte, 1, 0) == 1) {
+    this->handle_char_(idf_byte);
+    this->last_uart_byte_ = now;
+  }
+#endif
 
   if (this->ready_to_tx_) {   // если можно отправлять
     if (!this->tx_buffer_.empty()) {  // если есть что отправлять
@@ -173,15 +194,20 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
     if (data[9] != crc1) {
       ESP_LOGW(TAG, "Received invalid message checksum 1 %02X!=%02X", data[9], crc1);
       std::string pretty_cmd1 = format_hex_pretty(rx_message_);
-      ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd1.c_str() );
+      ESP_LOGD(TAG, "Получен пакет: %s", pretty_cmd1.c_str());
       return false;
     }
   // Byte 10:
   // ...
 
   // ждем пока поступят все данные пакета
-  if (at  < length)
+  if (at < length)
     return true;
+
+  // защита от выхода за границы буфера
+  if (this->rx_message_.size() < (size_t)(length + 1)) {
+    return false;
+  }
 
   // считаем crc2
   uint8_t crc2 = data[10];
@@ -189,19 +215,17 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
     crc2 = (crc2 ^ data[i]);
   }
 
-  if (data[length - 1] != crc2 ) {
+  if (data[length - 1] != crc2) {
     ESP_LOGW(TAG, "Received invalid message checksum 2 %02X!=%02X", data[length - 1], crc2);
     std::string pretty_cmd1 = format_hex_pretty(rx_message_);
-    ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd1.c_str() );
+    ESP_LOGD(TAG, "Получен пакет: %s", pretty_cmd1.c_str());
     return false;
   }
 
-  // Byte Last: packet_size
-  //  if (at  ==  length) {
-  if (data[length] != packet_size ) {
+  if (data[length] != packet_size) {
     ESP_LOGW(TAG, "Received invalid message size %02X!=%02X", data[length], packet_size);
     std::string pretty_cmd1 = format_hex_pretty(rx_message_);
-    ESP_LOGD(TAG,  "Получен пакет: %S ", pretty_cmd1.c_str() );
+    ESP_LOGD(TAG, "Получен пакет: %s", pretty_cmd1.c_str());
     return false;
   }
 
@@ -212,7 +236,7 @@ bool NiceBusT4::validate_message_() {                    // проверка п�
 
   // для вывода пакета в лог
   std::string pretty_cmd = format_hex_pretty(rx_message_);
-  ESP_LOGI(TAG,  "Получен пакет: %S ", pretty_cmd.c_str() );
+  ESP_LOGI(TAG, "Получен пакет: %s", pretty_cmd.c_str());
 
   // здесь что-то делаем с сообщением
   parse_status_packet(rx_message_);
@@ -235,13 +259,13 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
     ESP_LOGD(TAG, "Получен пакет EVT с данными. Последняя ячейка %d ", data[12]);
     std::vector<uint8_t> vec_data(this->rx_message_.begin() + 14, this->rx_message_.end() - 2);
     std::string str(this->rx_message_.begin() + 14, this->rx_message_.end() - 2);
-    ESP_LOGI(TAG,  "Строка с данными: %S ", str.c_str() );
+    ESP_LOGI(TAG, "Строка с данными: %s", str.c_str());
     std::string pretty_data = format_hex_pretty(vec_data);
-    ESP_LOGI(TAG,  "Данные HEX %S ", pretty_data.c_str() );
+    ESP_LOGI(TAG, "Данные HEX %s", pretty_data.c_str());
     // получили пакет с данными EVT, начинаем разбирать
 
     if ((data[6] == INF) && (data[9] == FOR_CU)  && (data[11] == GET - 0x80) && (data[13] == NOERR)) { // интересуют ответы на запросы GET, пришедшие без ошибок от привода
-      ESP_LOGI(TAG,  "Получен ответ на запрос %X ", data[10] );
+      ESP_LOGI(TAG, "Получен ответ на запрос %X", data[10]);
       switch (data[10]) { // cmd_submnu
         case TYPE_M:
           //           ESP_LOGI(TAG,  "Тип привода %X",  data[14]);
@@ -319,9 +343,14 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
           else {
             this->_pos_usl = (data[14] << 8) + data[15];
           }
-          this->position = (_pos_usl - _pos_cls) * 1.0f / (_pos_opn - _pos_cls);
-          ESP_LOGI(TAG, "Условное положение ворот: %d, положение в %%: %f", _pos_usl, (_pos_usl - _pos_cls) * 100.0f / (_pos_opn - _pos_cls));
-          this->publish_state();  // публикуем состояние
+          if (this->_pos_opn != this->_pos_cls) {
+            this->position = (_pos_usl - _pos_cls) * 1.0f / (_pos_opn - _pos_cls);
+            this->position = std::max(0.0f, std::min(1.0f, this->position));
+            ESP_LOGI(TAG, "Условное положение ворот: %d, положение в %%: %.1f", _pos_usl, (_pos_usl - _pos_cls) * 100.0f / (_pos_opn - _pos_cls));
+          } else {
+            ESP_LOGW(TAG, "Позиции открытия и закрытия совпадают, позиция не вычислена");
+          }
+          this->publish_state();
           break;
 
         case 0x01:
@@ -473,9 +502,9 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
     ESP_LOGD(TAG, "Получен пакет RSP");
     std::vector<uint8_t> vec_data(this->rx_message_.begin() + 12, this->rx_message_.end() - 3);
     std::string str(this->rx_message_.begin() + 12, this->rx_message_.end() - 3);
-    ESP_LOGI(TAG,  "Строка с данными: %S ", str.c_str() );
+    ESP_LOGI(TAG, "Строка с данными: %s", str.c_str());
     std::string pretty_data = format_hex_pretty(vec_data);
-    ESP_LOGI(TAG,  "Данные HEX %S ", pretty_data.c_str() );
+    ESP_LOGI(TAG, "Данные HEX %s", pretty_data.c_str());
     switch (data[9]) { // cmd_mnu
       case FOR_CU:
         ESP_LOGI(TAG,  "Пакет контроллера привода" );
@@ -571,9 +600,12 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
             } // switch sub_run_cmd2
 
             this->_pos_usl = (data[12] << 8) + data[13];
-            this->position = (_pos_usl - _pos_cls) * 1.0f / (_pos_opn - _pos_cls);
-            ESP_LOGD(TAG, "Условное положение ворот: %d, положение в %%: %f", _pos_usl, (_pos_usl - _pos_cls) * 100.0f / (_pos_opn - _pos_cls));
-            this->publish_state();  // публикуем состояние
+            if (this->_pos_opn != this->_pos_cls) {
+              this->position = (_pos_usl - _pos_cls) * 1.0f / (_pos_opn - _pos_cls);
+              this->position = std::max(0.0f, std::min(1.0f, this->position));
+              ESP_LOGD(TAG, "Условное положение ворот: %d, положение в %%: %.1f", _pos_usl, (_pos_usl - _pos_cls) * 100.0f / (_pos_opn - _pos_cls));
+            }
+            this->publish_state();
 
             break; //STA
 
@@ -760,19 +792,19 @@ void NiceBusT4::dump_config() {    //  добавляем в  лог инфор�
   ESP_LOGCONFIG(TAG, "  Положение закрытых ворот: %d", this->_pos_cls);
 
   std::string manuf_str(this->manufacturer_.begin(), this->manufacturer_.end());
-  ESP_LOGCONFIG(TAG, "  Производитель: %S ", manuf_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Производитель: %s", manuf_str.c_str());
 
   std::string prod_str(this->product_.begin(), this->product_.end());
-  ESP_LOGCONFIG(TAG, "  Привод: %S ", prod_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Привод: %s", prod_str.c_str());
 
   std::string hard_str(this->hardware_.begin(), this->hardware_.end());
-  ESP_LOGCONFIG(TAG, "  Железо привода: %S ", hard_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Железо привода: %s", hard_str.c_str());
 
   std::string firm_str(this->firmware_.begin(), this->firmware_.end());
-  ESP_LOGCONFIG(TAG, "  Прошивка привода: %S ", firm_str.c_str());
-  
+  ESP_LOGCONFIG(TAG, "  Прошивка привода: %s", firm_str.c_str());
+
   std::string dsc_str(this->description_.begin(), this->description_.end());
-  ESP_LOGCONFIG(TAG, "  Описание привода: %S ", dsc_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Описание привода: %s", dsc_str.c_str());
 
 
   ESP_LOGCONFIG(TAG, "  Адрес шлюза: 0x%04X", from_addr);
@@ -780,20 +812,20 @@ void NiceBusT4::dump_config() {    //  добавляем в  лог инфор�
   ESP_LOGCONFIG(TAG, "  Адрес приёмника: 0x%04X", oxi_addr);
   
   std::string oxi_prod_str(this->oxi_product.begin(), this->oxi_product.end());
-  ESP_LOGCONFIG(TAG, "  Приёмник: %S ", oxi_prod_str.c_str());
-  
+  ESP_LOGCONFIG(TAG, "  Приёмник: %s", oxi_prod_str.c_str());
+
   std::string oxi_hard_str(this->oxi_hardware.begin(), this->oxi_hardware.end());
-  ESP_LOGCONFIG(TAG, "  Железо приёмника: %S ", oxi_hard_str.c_str());
+  ESP_LOGCONFIG(TAG, "  Железо приёмника: %s", oxi_hard_str.c_str());
 
   std::string oxi_firm_str(this->oxi_firmware.begin(), this->oxi_firmware.end());
-  ESP_LOGCONFIG(TAG, "  Прошивка приёмника: %S ", oxi_firm_str.c_str());
-  
+  ESP_LOGCONFIG(TAG, "  Прошивка приёмника: %s", oxi_firm_str.c_str());
+
   std::string oxi_dsc_str(this->oxi_description.begin(), this->oxi_description.end());
-  ESP_LOGCONFIG(TAG, "  Описание приёмника: %S ", oxi_dsc_str.c_str());
- 
-  ESP_LOGCONFIG(TAG, "  Автозакрытие - L1: %S ", autocls_flag ? "Да" : "Нет");
-  ESP_LOGCONFIG(TAG, "  Закрыть после фото - L2: %S ", photocls_flag ? "Да" : "Нет");
-  ESP_LOGCONFIG(TAG, "  Всегда закрывать - L3: %S ", alwayscls_flag ? "Да" : "Нет");
+  ESP_LOGCONFIG(TAG, "  Описание приёмника: %s", oxi_dsc_str.c_str());
+
+  ESP_LOGCONFIG(TAG, "  Автозакрытие - L1: %s", autocls_flag ? "Да" : "Нет");
+  ESP_LOGCONFIG(TAG, "  Закрыть после фото - L2: %s", photocls_flag ? "Да" : "Нет");
+  ESP_LOGCONFIG(TAG, "  Всегда закрывать - L3: %s", alwayscls_flag ? "Да" : "Нет");
   
 }
 
@@ -893,30 +925,32 @@ std::vector<uint8_t> NiceBusT4::raw_cmd_prepare (std::string data) { // подг
 
 
 
-void NiceBusT4::send_array_cmd (std::vector<uint8_t> data) {          // отправляет break + подготовленную ранее в массиве команду
+void NiceBusT4::send_array_cmd(std::vector<uint8_t> data) {
   return send_array_cmd((const uint8_t *)data.data(), data.size());
 }
-void NiceBusT4::send_array_cmd (const uint8_t *data, size_t len) {
-  // отправка данных в uart
-  char br_ch = 0x00;                                               // для break
-  Serial1.flush();
-  //uart_set_line_inverse(param_ptr_config->uart_port_num, UART_INVERSE_TXD);
-  //ets_delay_us(1250);
-  //uart_set_line_inverse(param_ptr_config->uart_port_num, UART_INVERSE_DISABLE)
-  Serial1.updateBaudRate(BAUD_BREAK);
-  Serial1.write(&br_ch, 1);                                         // отправляем ноль на низкой скорости, длиинный ноль
-  //Serial1.flush();
-  delayMicroseconds(90);                                          // добавляем задержку к ожиданию, иначе скорость переключится раньше отправки. С задержкой на d1-mini я получил идеальный сигнал, break = 520us
-  Serial1.updateBaudRate(BAUD_WORK);
-  Serial1.write(data, len);  
-  //Serial1.flush();
-  //Microseconds  bit   byte
-  //19200	        52	  521
-  //delayMicroseconds(521*len);
-  //uart_wait_tx_empty(_uart);                                       // ждем завершения отправки
-  std::string pretty_cmd = format_hex_pretty((uint8_t*)&data[0], len);                    // для вывода команды в лог
-  ESP_LOGI(TAG,  "Отправлено: %S ", pretty_cmd.c_str() );
 
+void NiceBusT4::send_array_cmd(const uint8_t *data, size_t len) {
+#ifdef USE_ARDUINO
+  // Генерация break сменой baudrate — проверено на ESP32-C3/S3
+  char br_ch = 0x00;
+  this->hw_serial_->flush();
+  this->hw_serial_->updateBaudRate(BAUD_BREAK);
+  this->hw_serial_->write(&br_ch, 1);
+  // Небольшая задержка позволяет байту уйти в линию до переключения baud
+  delayMicroseconds(90);
+  this->hw_serial_->updateBaudRate(BAUD_WORK);
+  this->hw_serial_->write(data, len);
+#endif
+#ifdef USE_ESP_IDF
+  // Нативный UART break через инверсию TX — не требует смены baudrate
+  uart_wait_tx_done(this->idf_port_, pdMS_TO_TICKS(10));
+  uart_set_line_inverse(this->idf_port_, UART_SIGNAL_TXD_INV);
+  esp_rom_delay_us(BREAK_DURATION_US);
+  uart_set_line_inverse(this->idf_port_, UART_SIGNAL_INV_DISABLE);
+  uart_write_bytes(this->idf_port_, (const char *)data, len);
+#endif
+  std::string pretty_cmd = format_hex_pretty((uint8_t*)&data[0], len);
+  ESP_LOGI(TAG, "Отправлено: %s", pretty_cmd.c_str());
 }
 
 

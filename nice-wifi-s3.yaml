@@ -1,0 +1,152 @@
+substitutions:
+  name: nice-bust4-s3
+  device_description: "Nice Bus T4 gateway on ESP32-S3"
+  external_components_source: github://srepenko/Nice_BusT4@main
+
+esphome:
+  name: ${name}
+  platformio_options:
+    board_build.f_flash: 80000000L
+    board_build.flash_mode: qio
+    board_build.flash_size: 4MB
+
+esp32:
+  variant: ESP32S3
+  board: esp32-s3-devkitc-1
+  framework:
+    # Рекомендуется esp-idf для S3: нативный USB CDC для логгера
+    # и hardware break без смены baudrate
+    type: esp-idf
+    version: recommended
+
+external_components:
+  - source: ${external_components_source}
+    refresh: 0s
+
+logger:
+  level: DEBUG
+  # На S3 с esp-idf USB CDC используется как логгер — UART0 свободен
+  hardware_uart: USB_SERIAL_JTAG
+
+ota:
+  - platform: esphome
+    password: !secret esphome_ota_key
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Gate-S3 Fallback"
+    password: "rJH9KDSki23h"
+
+captive_portal:
+
+web_server:
+  version: 3
+
+api:
+  encryption:
+    key: !secret esphome_encryption_key
+  services:
+    - service: raw_command
+      variables:
+        raw_cmd: string
+      then:
+        lambda: |-
+          nice_cover -> NiceBusT4::send_raw_cmd(raw_cmd);
+
+    - service: send_inf_command
+      variables:
+        to_addr: string
+        whose: string
+        command: string
+        type_command: string
+        next_data: string
+        data_on: bool
+        data_command: string
+      then:
+        lambda: |-
+          nice_cover -> NiceBusT4::send_inf_cmd(to_addr, whose, command, type_command, next_data, data_on, data_command);
+
+    - service: gate_length_recognition
+      then:
+        lambda: |-
+          nice_cover -> NiceBusT4::set_mcu("0b","01");
+
+    - service: devices_recognition
+      then:
+        lambda: |-
+          nice_cover -> NiceBusT4::set_mcu("0a","01");
+
+    - service: closing_force
+      variables:
+        force: string
+      then:
+        lambda: |-
+          nice_cover -> NiceBusT4::set_mcu("4b", force);
+
+    - service: opening_force
+      variables:
+        force: string
+      then:
+        lambda: |-
+          nice_cover -> NiceBusT4::set_mcu("4a", force);
+
+# ---- Кнопки управления ----
+button:
+  - platform: template
+    name: Пошагово
+    id: sbs
+    on_press:
+      lambda: |-
+        nice_cover -> NiceBusT4::send_cmd(bus_t4::SBS);
+
+  - platform: template
+    name: Статус входов
+    id: in_stat
+    on_press:
+      lambda: |-
+        nice_cover -> NiceBusT4::send_raw_cmd("55.0D.00.03.00.66.08.06.6B.04.D0.99.00.00.4D.0D");
+
+  - platform: template
+    name: Частичное открытие 1
+    id: p_opn1
+    on_press:
+      lambda: |-
+        nice_cover -> NiceBusT4::send_cmd(bus_t4::P_OPN1);
+
+cover:
+  - platform: bus_t4
+    name: "Nice Cover S3"
+    device_class: gate
+    id: nice_cover
+    # ESP32-S3: UART1 на любых GPIO через GPIO matrix
+    # GPIO17 = TX, GPIO18 = RX — не пересекаются с USB (GPIO19/20) и JTAG (GPIO39-42)
+    tx_pin: 17
+    rx_pin: 18
+    uart_nr: 1
+
+# ---- Автозакрытие ----
+switch:
+  - platform: template
+    name: "Автозакрытие"
+    id: autoclose
+    restore_mode: DISABLED
+    lambda: |-
+      if (nice_cover -> NiceBusT4::autocls_flag) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+      lambda: |-
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "80", "a9", "00", true, "01");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "84", "a9", "00", true, "01");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "80", "99", "00", true, "01");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "84", "99", "00", true, "01");
+    turn_off_action:
+      lambda: |-
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "80", "a9", "00", true, "00");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "84", "a9", "00", true, "00");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "80", "99", "00", true, "01");
+        nice_cover -> NiceBusT4::send_inf_cmd("0003", "04", "84", "99", "00", true, "01");

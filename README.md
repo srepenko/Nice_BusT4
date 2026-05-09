@@ -77,6 +77,55 @@ Stop:  55 0c 00 03 00 81 01 05 86 01 82 02 64 e5 0c
 * Улучшена совместимость с приводами Spin ([@TheGoblinHero](https://github.com/TheGoblinHero))
 * Добавлена функция задания произвольного положения привода ([@TheGoblinHero](https://github.com/TheGoblinHero))
 
+---
+
+# Поддерживаемые платформы
+
+## ESP32-C3 (текущая, проверена)
+- Фреймворк: Arduino или esp-idf
+- Пины Bus T4: TX=GPIO21, RX=GPIO20
+- Статус LED: GPIO8 (инвертирован)
+- Файл конфигурации: `nice-wifi.yaml`
+
+## ESP32-S3 (`nice-wifi-s3.yaml`)
+- Фреймворк: **esp-idf** (рекомендуется)
+- Встроенный USB Serial/JTAG — логгер использует USB, UART0 свободен
+- Пины Bus T4: TX=GPIO17, RX=GPIO18 (UART1, можно назначить любые)
+- Избегать GPIO19/20 (USB D-/D+) и GPIO39-42 (JTAG)
+- Аппаратный UART break через инверсию TX — точнее, без `delayMicroseconds`
+- Ранее в YAML были закомментированы пины 43/44 — это UART0 (не нужен)
+
+## ESP32-C6 (`nice-wifi-c6.yaml`)
+- Фреймворк: **esp-idf** (Arduino поддержка ограничена)
+- Требует ESP-IDF 5.x
+- **Wi-Fi 6** (802.11ax) — лучше работает в плотных сетях
+- Встроенный Zigbee/Thread (802.15.4) — потенциал для расширения
+- Встроенный USB Serial/JTAG для логгера
+- Пины Bus T4: TX=GPIO4, RX=GPIO5 (UART1)
+- Только 2 UART (UART0, UART1); UART0 оставить для прошивки
+- Аппаратный break через `uart_set_line_inverse()`
+
+## ESP32-P4 (не рекомендуется для этого проекта)
+- **Нет встроенного Wi-Fi и Bluetooth** — требует внешнего радиомодуля (ESP32-C6 или C2)
+- Высокопроизводительный двухъядерный RISC-V процессор с богатой периферией
+- Более сложная схема: P4 как MCU + C6 как радиомодуль
+- Для управления воротами — избыточная мощность, сложность без видимых преимуществ
+- **Вывод**: использовать только если P4 уже есть в проекте по другим причинам (например, управление несколькими воротами + обработка видео с камеры на въезде)
+
+---
+
+# Выбор метода генерации UART break
+
+| Платформа | Фреймворк | Метод break | Точность |
+|-----------|-----------|-------------|----------|
+| ESP8266 | Arduino | смена baudrate + `delayMicroseconds(90)` | ±5% |
+| ESP32-C3 | Arduino | смена baudrate + `delayMicroseconds(90)` | ±3% |
+| ESP32-C3 | esp-idf | `uart_set_line_inverse()` + `esp_rom_delay_us()` | <1% |
+| ESP32-S3 | esp-idf | `uart_set_line_inverse()` + `esp_rom_delay_us()` | <1% |
+| ESP32-C6 | esp-idf | `uart_set_line_inverse()` + `esp_rom_delay_us()` | <1% |
+
+---
+
 Если проект заинтересовал, вы можете [купить мне пиво или кофе](https://www.tinkoff.ru/cf/12xvN3UtJkO)
 
 
