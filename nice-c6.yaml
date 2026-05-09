@@ -1,0 +1,168 @@
+# ==============================================================================
+#  Nice Bus T4 — конфигурация для ESP32-C6
+#
+#  ESP32-C6 имеет поддержку WiFi 6 (802.11ax), BLE 5.3, Zigbee 3.0 и Thread.
+#  Это делает его отличным выбором для интеграции в экосистемы Matter/Zigbee.
+#  На C6 доступны UART0, UART1 и LP-UART. Под Bus T4 используем UART1.
+#
+#  Пины UART1 (рекомендуемые на ESP32-C6-DevKitC-1):
+#    TX = GPIO4, RX = GPIO5
+#  Эти пины свободны на плате разработчика и не задействованы под USB/JTAG.
+#
+#  Схема подключения:
+#    Bus T4 (RJ-11/6p4c)     ESP32-C6
+#    pin 1 (Rx) ------------ TX (GPIO4)
+#    pin 2 (GND) ----------- GND
+#    pin 4 (Tx) ------------ RX (GPIO5)
+#    pin 5 (+24V) ---------- DC-DC → 3.3V
+#
+#  Физический уровень: CAN-трансивер (SN65HVD230 или TJA1050)
+#  Уровни на C6 — 3.3В, трансивер с 3.3В питанием подключается напрямую.
+# ==============================================================================
+
+substitutions:
+  name: nice-bust4-c6
+  device_description: "Nice Bus T4 gateway on ESP32-C6"
+  external_components_source: github://srepenko/Nice_BusT4@main
+
+esphome:
+  name: ${name}
+  comment: ${device_description}
+  platformio_options:
+    board_build.flash_mode: dio
+    board_build.flash_size: 4MB
+
+esp32:
+  variant: ESP32C6
+  board: esp32-c6-devkitc-1
+  framework:
+    type: arduino
+
+external_components:
+  - source: ${external_components_source}
+    refresh: 0s
+
+logger:
+  level: DEBUG
+  baud_rate: 0
+
+ota:
+  - platform: esphome
+    password: !secret esphome_ota_key
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # ESP32-C6 поддерживает WiFi 6 (802.11ax) — укажите если точка доступа его поддерживает
+  # fast_connect: true
+  ap:
+    ssid: "Gate C6 Fallback"
+    password: "rJH9KDSki23h"
+
+captive_portal:
+
+web_server:
+  version: 3
+
+# Статусный светодиод (на C6-DevKitC-1 встроен на GPIO8)
+status_led:
+  pin:
+    number: GPIO8
+    inverted: false
+
+api:
+  encryption:
+    key: !secret esphome_encryption_key
+  services:
+    - service: raw_command
+      variables:
+        raw_cmd: string
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::send_raw_cmd(raw_cmd);
+
+    - service: send_inf_command
+      variables:
+        to_addr:      string
+        whose:        string
+        command:      string
+        type_command: string
+        next_data:    string
+        data_on:      bool
+        data_command: string
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::send_inf_cmd(to_addr, whose, command, type_command, next_data, data_on, data_command);
+
+    - service: gate_length_recognition
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::set_mcu("0b", "01");
+
+    - service: devices_recognition
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::set_mcu("0a", "01");
+
+    - service: closing_force
+      variables:
+        force: string
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::set_mcu("4b", force);
+
+    - service: opening_force
+      variables:
+        force: string
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::set_mcu("4a", force);
+
+button:
+  - platform: template
+    name: "Пошагово"
+    on_press:
+      lambda: nice_cover->NiceBusT4::send_cmd(bus_t4::SBS);
+
+  - platform: template
+    name: "Статус входов"
+    on_press:
+      lambda: |-
+        nice_cover->NiceBusT4::send_raw_cmd("55.0D.00.03.00.66.08.06.6B.04.D0.99.00.00.4D.0D");
+
+  - platform: template
+    name: "Частичное открытие 1"
+    on_press:
+      lambda: nice_cover->NiceBusT4::send_cmd(bus_t4::P_OPN1);
+
+cover:
+  - platform: bus_t4
+    name: "Nice Cover C6"
+    device_class: gate
+    id: nice_cover
+    tx_pin: 4     # UART1 TX на ESP32-C6-DevKitC-1
+    rx_pin: 5     # UART1 RX
+    uart_num: 1   # использовать Serial1 (UART1)
+    # address:     0x0003
+    # use_address: 0x0066
+    # oxi_address: 0x000A
+
+switch:
+  - platform: template
+    name: "Автозакрытие"
+    id: autoclose
+    restore_mode: DISABLED
+    lambda: |-
+      return nice_cover->NiceBusT4::autocls_flag ? optional<bool>(true) : optional<bool>(false);
+    turn_on_action:
+      lambda: |-
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "80", "a9", "00", true, "01");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "84", "a9", "00", true, "01");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "80", "99", "00", true, "01");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "84", "99", "00", true, "01");
+    turn_off_action:
+      lambda: |-
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "80", "a9", "00", true, "00");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "84", "a9", "00", true, "00");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "80", "99", "00", true, "01");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "84", "99", "00", true, "01");

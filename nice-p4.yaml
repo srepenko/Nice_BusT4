@@ -1,0 +1,173 @@
+# ==============================================================================
+#  Nice Bus T4 — конфигурация для ESP32-P4
+#
+#  ВАЖНО: ESP32-P4 НЕ имеет встроенного WiFi/BLE.
+#  Для работы с ESPHome и Home Assistant необходим один из следующих вариантов:
+#    1. Плата с совместным P4 + C6 (например, ESP32-P4-Function-EV-Board,
+#       где C6 обеспечивает беспроводную связь).
+#    2. Ethernet-адаптер (например, на базе W5500 через SPI).
+#
+#  На плате ESP32-P4-Function-EV-Board:
+#    - P4 — главный процессор (управление, логика Bus T4)
+#    - C6 — радиомодуль (WiFi/BLE), подключён к P4 через SDIO/SPI
+#
+#  ESP32-P4 имеет HP-UART0..HP-UART4 и LP-UART0/1.
+#  Под Bus T4 рекомендуется HP-UART1.
+#
+#  Рекомендуемые пины UART1 (HP-UART1) на P4-Function-EV-Board:
+#    TX = GPIO10, RX = GPIO11
+#  Проверьте схему вашей конкретной платы — доступные GPIO зависят от разводки.
+#
+#  Схема подключения:
+#    Bus T4 (RJ-11/6p4c)     ESP32-P4
+#    pin 1 (Rx) ------------ TX (GPIO10)
+#    pin 2 (GND) ----------- GND
+#    pin 4 (Tx) ------------ RX (GPIO11)
+#    pin 5 (+24V) ---------- DC-DC → 3.3V
+#
+#  Физический уровень: CAN-трансивер (SN65HVD230 или TJA1050)
+#  P4 работает на 3.3В — трансивер 3.3В подключается напрямую.
+#
+#  Примечание по ESPHome: поддержка P4 появилась в ESPHome 2024.x.
+#  Убедитесь, что используете актуальную версию.
+# ==============================================================================
+
+substitutions:
+  name: nice-bust4-p4
+  device_description: "Nice Bus T4 gateway on ESP32-P4"
+  external_components_source: github://srepenko/Nice_BusT4@main
+
+esphome:
+  name: ${name}
+  comment: ${device_description}
+  platformio_options:
+    board_build.flash_mode: dio
+    board_build.flash_size: 8MB  # P4-Function-EV-Board имеет 8MB flash
+
+esp32:
+  variant: ESP32P4
+  board: esp32-p4-function-ev-board
+  framework:
+    type: arduino
+
+external_components:
+  - source: ${external_components_source}
+    refresh: 0s
+
+logger:
+  level: DEBUG
+  baud_rate: 0
+
+ota:
+  - platform: esphome
+    password: !secret esphome_ota_key
+
+# Вариант 1: WiFi через встроенный C6 (на P4-Function-EV-Board)
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Gate P4 Fallback"
+    password: "rJH9KDSki23h"
+
+captive_portal:
+
+web_server:
+  version: 3
+
+api:
+  encryption:
+    key: !secret esphome_encryption_key
+  services:
+    - service: raw_command
+      variables:
+        raw_cmd: string
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::send_raw_cmd(raw_cmd);
+
+    - service: send_inf_command
+      variables:
+        to_addr:      string
+        whose:        string
+        command:      string
+        type_command: string
+        next_data:    string
+        data_on:      bool
+        data_command: string
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::send_inf_cmd(to_addr, whose, command, type_command, next_data, data_on, data_command);
+
+    - service: gate_length_recognition
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::set_mcu("0b", "01");
+
+    - service: devices_recognition
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::set_mcu("0a", "01");
+
+    - service: closing_force
+      variables:
+        force: string
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::set_mcu("4b", force);
+
+    - service: opening_force
+      variables:
+        force: string
+      then:
+        lambda: |-
+          nice_cover->NiceBusT4::set_mcu("4a", force);
+
+button:
+  - platform: template
+    name: "Пошагово"
+    on_press:
+      lambda: nice_cover->NiceBusT4::send_cmd(bus_t4::SBS);
+
+  - platform: template
+    name: "Статус входов"
+    on_press:
+      lambda: |-
+        nice_cover->NiceBusT4::send_raw_cmd("55.0D.00.03.00.66.08.06.6B.04.D0.99.00.00.4D.0D");
+
+  - platform: template
+    name: "Частичное открытие 1"
+    on_press:
+      lambda: nice_cover->NiceBusT4::send_cmd(bus_t4::P_OPN1);
+
+cover:
+  - platform: bus_t4
+    name: "Nice Cover P4"
+    device_class: gate
+    id: nice_cover
+    tx_pin: 10    # HP-UART1 TX на ESP32-P4-Function-EV-Board (уточните по схеме платы)
+    rx_pin: 11    # HP-UART1 RX
+    uart_num: 1   # использовать Serial1 (HP-UART1)
+    # address:     0x0003
+    # use_address: 0x0066
+    # oxi_address: 0x000A
+
+switch:
+  - platform: template
+    name: "Автозакрытие"
+    id: autoclose
+    restore_mode: DISABLED
+    lambda: |-
+      return nice_cover->NiceBusT4::autocls_flag ? optional<bool>(true) : optional<bool>(false);
+    turn_on_action:
+      lambda: |-
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "80", "a9", "00", true, "01");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "84", "a9", "00", true, "01");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "80", "99", "00", true, "01");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "84", "99", "00", true, "01");
+    turn_off_action:
+      lambda: |-
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "80", "a9", "00", true, "00");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "84", "a9", "00", true, "00");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "80", "99", "00", true, "01");
+        nice_cover->NiceBusT4::send_inf_cmd("0003", "04", "84", "99", "00", true, "01");

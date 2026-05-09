@@ -12,7 +12,7 @@
 
 Подключение
 
-BusT4                       ESP8266
+BusT4                       ESP8266 / ESP32
 
 Стенка устройства        Rx Tx GND
 9  7  5  3  1  
@@ -46,39 +46,38 @@ BusT4                       ESP8266
 
 #include "esphome.h"
 #include "esphome/core/component.h"
-#include "esphome/core/automation.h"           // для добавления Action
+#include "esphome/core/automation.h"
 #include "esphome/components/cover/cover.h"
-//#include "esphome/components/uart/uart.h"
-//#include <HardwareSerial.h>
-#include "esphome/core/helpers.h"              // парсим строки встроенными инструментами
-#include <queue>                               // для работы с очередью
+#include "esphome/core/helpers.h"
+#include <queue>
 
 
 
 namespace esphome {
 namespace bus_t4 {
 
-/* для короткого обращения к членам класса */
 using namespace esphome::cover;
-//using esp8266::timeoutTemplate::oneShotMs;
 
 
-//static const int _UART_NO=UART0; /* номер uart */
-//static const int TX_P = 1;         /* пин Tx */
-static const uint32_t BAUD_BREAK = 9200; /* бодрэйт для длинного импульса перед пакетом */
-static const uint32_t BAUD_WORK = 19200; /* рабочий бодрэйт */
-static const uint8_t START_CODE = 0x55; /*стартовый байт пакета */
+static const uint32_t BAUD_BREAK = 9200;
+static const uint32_t BAUD_WORK = 19200;
+static const uint8_t START_CODE = 0x55;
+
+// Период опроса шины в loop() (мс)
+static const uint32_t POLL_INTERVAL_MS = 5000;
+// Период между TX-посылками (мс)
+static const uint32_t TX_INTERVAL_MS = 100;
+// Таймаут сборки пакета: если байты прекратили поступать – сбросить буфер
+static const uint32_t RX_TIMEOUT_MS = 100;
 
 
-/* сетевые настройки esp
+/*
   Ряд может принимать значения от 0 до 63, по-умолчанию 0
   Адрес OVIEW начинается с 8
 
   При объединении в сеть несколько приводов с OXI необходимо для разных приводов указать разные ряды.
-  В этом случае У OXI ряд должен быть как у привода, которым он управляет.
+  В этом случае у OXI ряд должен быть как у привода, которым он управляет.
 */
-
-
 
 
 
@@ -228,12 +227,6 @@ enum command_pkt  : uint8_t {
   INF_IO         = 0xD1,    /*	состояние входов-выходов	*/
   DIAG_PAR       = 0xD2,    /*  DIAGNOSTICS of other parameters   */
   
-  
-  
-  
-
-
-  
 
   CUR_MAN = 0x02,  // Текущий Маневр
   SUBMNU  = 0x04,  // Подменю
@@ -316,9 +309,6 @@ struct packet_cmd_body_t {
 };
 
 
-
-
-
 // тело пакета ответа RSP
 // пакеты с размером тела 0x0e=14 байт 
 struct packet_rsp_body_t {
@@ -371,7 +361,6 @@ struct packet_rsp_body_t {
 
 // создаю класс, наследую членов классов Component и Cover
 class NiceBusT4 : public Component, public Cover{
-//class NiceBusT4 : public uart::UARTDevice, public Component, public Cover {
   public:
 	
     // настройки привода
@@ -383,12 +372,12 @@ class NiceBusT4 : public Component, public Cover{
 		
     void setup() override;
     void loop() override;
-    void dump_config() override; // для вывода в лог информации об оборудовнии
+    void dump_config() override;
 
     void send_raw_cmd(std::string data);
     void send_cmd(uint8_t data) {this->tx_buffer_.push(gen_control_cmd(data));}	
-    void send_inf_cmd(std::string to_addr, std::string whose, std::string command, std::string type_command,  std::string next_data, bool data_on, std::string data_command); // длинная команда
-    void set_mcu(std::string command, std::string data_command); // команда контроллеру мотора
+    void send_inf_cmd(std::string to_addr, std::string whose, std::string command, std::string type_command,  std::string next_data, bool data_on, std::string data_command);
+    void set_mcu(std::string command, std::string data_command);
 		
 
     void set_class_gate(uint8_t class_gate) { class_gate_ = class_gate; }
@@ -400,10 +389,8 @@ class NiceBusT4 : public Component, public Cover{
     void set_rx_pin(uint8_t rx_pin) {this->rx_pin = rx_pin;}
     void set_tx_pin(uint8_t tx_pin) {this->tx_pin = tx_pin;}
 
-    
- /*   void set_update_interval(uint32_t update_interval) {  // интервал получения статуса привода
-      this->update_interval_ = update_interval;
-    }*/
+    // Номер UART: 0=Serial, 1=Serial1, 2=Serial2. По умолчанию 1.
+    void set_uart_num(uint8_t num) {this->uart_num_ = num;}
 
     cover::CoverTraits get_traits() override;
 
@@ -411,46 +398,43 @@ class NiceBusT4 : public Component, public Cover{
     void control(const cover::CoverCall &call) override;
     void send_command_(const uint8_t *data, uint8_t len);
 
-
-    uint32_t update_interval_{500};
     uint32_t last_update_{0};
     uint32_t last_uart_byte_{0};
+    uint32_t last_rx_time_{0};   // момент получения последнего байта (для таймаута)
 
     uint8_t last_published_op_;
     float last_published_pos_;
 
 	
     uint8_t class_gate_ = 0x55; // 0x01 sliding, 0x02 sectional, 0x03 swing, 0x04 barrier, 0x05 up-and-over
-//    uint8_t last_init_command_;
 	
     bool init_cu_flag = false;	
     bool init_oxi_flag = false;	
 
 	
     // переменные для uart
-    uint8_t _uart_nr;
-    //uart_t* _uart = nullptr;
-    uint16_t _max_opn = 0;  // максимальная позиция энкодера или таймера
-    uint16_t _pos_opn = 2048;  // позиция открытия энкодера или таймера, не для всех приводов.
-    uint16_t _pos_cls = 0;  // позиция закрытия энкодера или таймера, не для всех приводов
-    uint16_t _pos_usl = 0;  // условная текущая позиция энкодера или таймера, не для всех приводов	
+    uint8_t uart_num_ = 1;      // номер аппаратного UART (1 = Serial1)
+    uint16_t _max_opn = 0;
+    uint16_t _pos_opn = 2048;
+    uint16_t _pos_cls = 0;
+    uint16_t _pos_usl = 0;
     // настройки заголовка формируемого пакета
-    uint16_t from_addr  = 0x0066; //от кого пакет, адрес bust4 шлюза
-    uint16_t to_addr; // = 0x00ff;	 // кому пакет, адрес контроллера привода, которым управляем
-    uint16_t oxi_addr; // = 0x000a;	 // адрес приемника
+    uint16_t from_addr  = 0x0066; // адрес bust4 шлюза
+    uint16_t to_addr;             // адрес контроллера привода
+    uint16_t oxi_addr;            // адрес приемника
     uint8_t rx_pin;
     uint8_t tx_pin;
     
 
-    std::vector<uint8_t> raw_cmd_prepare (std::string data);             // подготовка введенных пользователем данных для возможности отправки	
+    std::vector<uint8_t> raw_cmd_prepare (std::string data);
 	
     // генерация inf команд
-    std::vector<uint8_t> gen_inf_cmd(const uint8_t to_addr1, const uint8_t to_addr2, const uint8_t whose, const uint8_t inf_cmd, const uint8_t run_cmd, const uint8_t next_data, const std::vector<uint8_t> &data, size_t len);	 // все поля
-    std::vector<uint8_t> gen_inf_cmd(const uint8_t whose, const uint8_t inf_cmd, const uint8_t run_cmd) {return gen_inf_cmd((uint8_t)(this->to_addr >> 8), (uint8_t)(this->to_addr & 0xFF), whose, inf_cmd, run_cmd, 0x00, {0x00}, 0 );} // для команд без данных
+    std::vector<uint8_t> gen_inf_cmd(const uint8_t to_addr1, const uint8_t to_addr2, const uint8_t whose, const uint8_t inf_cmd, const uint8_t run_cmd, const uint8_t next_data, const std::vector<uint8_t> &data, size_t len);
+    std::vector<uint8_t> gen_inf_cmd(const uint8_t whose, const uint8_t inf_cmd, const uint8_t run_cmd) {return gen_inf_cmd((uint8_t)(this->to_addr >> 8), (uint8_t)(this->to_addr & 0xFF), whose, inf_cmd, run_cmd, 0x00, {0x00}, 0 );}
     std::vector<uint8_t> gen_inf_cmd(const uint8_t whose, const uint8_t inf_cmd, const uint8_t run_cmd, const uint8_t next_data, std::vector<uint8_t> data){
-	    return gen_inf_cmd((uint8_t)(this->to_addr >> 8), (uint8_t)(this->to_addr & 0xFF), whose, inf_cmd, run_cmd, next_data, data, data.size());} // для команд c данными
+	    return gen_inf_cmd((uint8_t)(this->to_addr >> 8), (uint8_t)(this->to_addr & 0xFF), whose, inf_cmd, run_cmd, next_data, data, data.size());}
     std::vector<uint8_t> gen_inf_cmd(const uint8_t to_addr1, const uint8_t to_addr2, const uint8_t whose, const uint8_t inf_cmd, const uint8_t run_cmd, const uint8_t next_data){
-	    return gen_inf_cmd(to_addr1, to_addr2, whose, inf_cmd, run_cmd, next_data, {0x00}, 0);} // для команд с адресом и без данных 	
+	    return gen_inf_cmd(to_addr1, to_addr2, whose, inf_cmd, run_cmd, next_data, {0x00}, 0);}
     	    
     // генерация cmd команд
     std::vector<uint8_t> gen_control_cmd(const uint8_t control_cmd);	    	
@@ -459,18 +443,20 @@ class NiceBusT4 : public Component, public Cover{
     void send_array_cmd (std::vector<uint8_t> data);	
     void send_array_cmd (const uint8_t *data, size_t len);
 
+    // Безопасное вычисление относительного положения с защитой от деления на ноль
+    // и принудительным ограничением в диапазоне [0.0, 1.0]
+    float safe_position(uint16_t usl) const;
 
-    void parse_status_packet (const std::vector<uint8_t> &data); // разбираем пакет статуса
+    void parse_status_packet (const std::vector<uint8_t> &data);
     
-    void handle_char_(uint8_t c);                                         // обработчик полученного байта
-    void handle_datapoint_(const uint8_t *buffer, size_t len);          // обработчик полученных данных
-    bool validate_message_();                                         // функция проверки полученного сообщения
+    void handle_char_(uint8_t c);
+    bool validate_message_();
 
-    std::vector<uint8_t> rx_message_;                          // здесь побайтно накапливается принятое сообщение
-    std::queue<std::vector<uint8_t>> tx_buffer_;             // очередь команд для отправки	
-    bool ready_to_tx_{true};	                           // флаг возможности отправлять команды
+    std::vector<uint8_t> rx_message_;
+    std::queue<std::vector<uint8_t>> tx_buffer_;
+    bool ready_to_tx_{true};	
 	
-    std::vector<uint8_t> manufacturer_ = {0x55, 0x55};  // при инициализации неизвестный производитель
+    std::vector<uint8_t> manufacturer_ = {0x55, 0x55};
     std::vector<uint8_t> product_;
     std::vector<uint8_t> hardware_;
     std::vector<uint8_t> firmware_;
