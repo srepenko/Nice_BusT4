@@ -44,8 +44,11 @@ BusT4                       ESP8266
 
 #pragma once
 
-#include "esphome.h"
+// не подключаем общий "esphome.h": он тянет bus_t4_entities.h раньше объявления NiceBusT4
 #include "esphome/core/component.h"
+#include "esphome/core/log.h"
+#include <vector>
+#include <string>
 #include "esphome/core/automation.h"           // для добавления Action
 #include "esphome/components/cover/cover.h"
 //#include "esphome/components/uart/uart.h"
@@ -369,6 +372,18 @@ struct packet_rsp_body_t {
 */
 
 
+// Параметр привода (регистр INF блока управления), который читается/пишется
+// сущностями number/switch/select/sensor платформы bus_t4.
+class BusT4Param {
+  public:
+    void set_reg(uint8_t reg) { this->reg_ = reg; }
+    uint8_t get_reg() const { return this->reg_; }
+    // вызывается, когда привод вернул значение регистра (ответ на GET)
+    virtual void on_param_value(const std::vector<uint8_t> &data) = 0;
+  protected:
+    uint8_t reg_{0};
+};
+
 // создаю класс, наследую членов классов Component и Cover
 class NiceBusT4 : public Component, public Cover{
 //class NiceBusT4 : public uart::UARTDevice, public Component, public Cover {
@@ -389,7 +404,15 @@ class NiceBusT4 : public Component, public Cover{
     void send_cmd(uint8_t data) {this->tx_buffer_.push(gen_control_cmd(data));}	
     void send_inf_cmd(std::string to_addr, std::string whose, std::string command, std::string type_command,  std::string next_data, bool data_on, std::string data_command); // длинная команда
     void set_mcu(std::string command, std::string data_command); // команда контроллеру мотора
-		
+
+    // --- параметры привода для сущностей number/switch/select/sensor ---
+    void register_param(BusT4Param *param) { this->params_.push_back(param); }
+    void read_param(uint8_t reg) { this->tx_buffer_.push(gen_inf_cmd(FOR_CU, reg, GET)); }
+    void write_param(uint8_t reg, const std::vector<uint8_t> &data);   // SET + повторное чтение
+    void read_all_params();                                            // поставить в очередь GET для всех параметров
+    void set_params_interval(uint32_t ms) { this->params_interval_ = ms; }
+    bool is_ready() const { return this->init_ok && this->class_gate_ != 0x55; }
+
 
     void set_class_gate(uint8_t class_gate) { class_gate_ = class_gate; }
     
@@ -478,7 +501,13 @@ class NiceBusT4 : public Component, public Cover{
     std::vector<uint8_t> oxi_product;
     std::vector<uint8_t> oxi_hardware;
     std::vector<uint8_t> oxi_firmware;
-    std::vector<uint8_t> oxi_description;	
+    std::vector<uint8_t> oxi_description;
+
+    std::vector<BusT4Param *> params_;          // зареєстровані параметри
+    uint32_t params_interval_{300000};          // як часто перечитувати параметри (мс), за замовчуванням 5 хв
+    uint32_t last_params_read_{0};
+    bool params_read_once_{false};
+    void dispatch_param_(uint8_t reg, const std::vector<uint8_t> &value);
 
 }; //класс
 

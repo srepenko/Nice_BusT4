@@ -4,6 +4,7 @@
 //#include "esphome/components/uart/uart.h"
 #include <Arduino.h>
 #include <HardwareSerial.h>
+#include <algorithm>
 
 namespace esphome {
 namespace bus_t4 {
@@ -92,6 +93,12 @@ void NiceBusT4::loop() {
         }
         this->last_update_ = millis();
     }  // if  каждую минуту
+
+    // параметры привода: прочитать сразу после инициализации, затем периодически
+    if (this->is_ready() && !this->params_.empty() &&
+        (!this->params_read_once_ || (millis() - this->last_params_read_) > this->params_interval_)) {
+      this->read_all_params();
+    }
 
 
 
@@ -372,9 +379,15 @@ void NiceBusT4::parse_status_packet (const std::vector<uint8_t> &data) {
           
         case ALW_CLS_ON:
           this->alwayscls_flag = data[14];
-          break;  
-          
+          break;
+
       } // switch cmd_submnu
+
+      // передаём значение зарегистрированным параметрам (number/switch/select/sensor)
+      if (data.size() >= 16 && 14u + data[12] <= data.size() - 2) {
+        std::vector<uint8_t> value(data.begin() + 14, data.begin() + 14 + data[12]);
+        this->dispatch_param_(data[10], value);
+      }
     } // if ответы на запросы GET, пришедшие без ошибок от привода
     
     if ((data[6] == INF) && (data[9] == FOR_CU)  && (data[11] == SET - 0x80) && (data[13] == NOERR)) { // интересуют ответы на запросы SET, пришедшие без ошибок от привода    
@@ -944,6 +957,39 @@ void NiceBusT4::set_mcu(std::string command, std::string data_command) {
     tx_buffer_.push(gen_inf_cmd(0x04, v_command[0], 0xa9, 0x00, v_data_command));
   }
   
+// ---------- параметры привода ----------
+
+// запись параметра: SET, затем GET, чтобы сущность показала фактическое значение из привода
+void NiceBusT4::write_param(uint8_t reg, const std::vector<uint8_t> &data) {
+  if (!this->is_ready()) {
+    ESP_LOGW(TAG, "Привод ещё не определён, запись параметра 0x%02X отклонена", reg);
+    return;
+  }
+  ESP_LOGI(TAG, "Запись параметра 0x%02X: %s", reg, format_hex_pretty(data).c_str());
+  this->tx_buffer_.push(gen_inf_cmd(FOR_CU, reg, SET, 0x00, data));
+  this->tx_buffer_.push(gen_inf_cmd(FOR_CU, reg, GET));
+}
+
+// поставить в очередь чтение всех зарегистрированных параметров (каждый регистр один раз)
+void NiceBusT4::read_all_params() {
+  std::vector<uint8_t> queued;
+  for (auto *p : this->params_) {
+    uint8_t reg = p->get_reg();
+    if (std::find(queued.begin(), queued.end(), reg) != queued.end()) continue;
+    queued.push_back(reg);
+    this->read_param(reg);
+  }
+  this->params_read_once_ = true;
+  this->last_params_read_ = millis();
+  ESP_LOGD(TAG, "Запрошено параметров привода: %u", (unsigned) queued.size());
+}
+
+void NiceBusT4::dispatch_param_(uint8_t reg, const std::vector<uint8_t> &value) {
+  for (auto *p : this->params_) {
+    if (p->get_reg() == reg) p->on_param_value(value);
+  }
+}
+
 // инициализация устройства
 void NiceBusT4::init_device (const uint8_t addr1, const uint8_t addr2, const uint8_t device ) {
   if (device == FOR_CU) {

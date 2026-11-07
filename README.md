@@ -13,6 +13,56 @@
 
 Современные блоки управления приводами имеют разъем BusT4, на который выведены GND, +V, Can-Rx, Can-Tx. Величина напряжения V может варьироваться от 24 до 35 вольт для разных блоков управления.
 
+# Настройки привода из Home Assistant (ветка `settings`)
+
+Параметры блока управления читаются и записываются по BusT4 как обычные сущности ESPHome.
+Значение всегда берётся из привода: после записи параметр перечитывается, плюс периодически
+(`params_interval`, по умолчанию 5 мин) — изменения кнопками на самом приводе тоже видны.
+
+```yaml
+cover:
+  - platform: bus_t4
+    id: nice_cover
+    name: "Nice Cover"
+    params_interval: 5min
+
+switch:          # функции вкл/выкл
+  - { platform: bus_t4, type: auto_close,   name: "Auto close" }
+  - { platform: bus_t4, type: photo_close,  name: "Close after photo" }
+  - { platform: bus_t4, type: always_close, name: "Always close" }
+  # standby, preflash, operator_block, key_lock, custom (+ register: 0x..)
+
+number:          # числовые параметры
+  - { platform: bus_t4, type: pause_time, name: "Pause time" }
+  - { platform: bus_t4, type: force_open, name: "Force open" }
+  # photo_close_time, always_close_time, standby_time, preflash_open_time, preflash_close_time,
+  # lamp_time, lock_time, suction_cup_time, speed_open, speed_close, speed_slow_open, speed_slow_close,
+  # force_close, leaf_delay_open, leaf_delay_close, reverse_time,
+  # custom (+ register, bytes, multiplier, min_value, max_value, step)
+
+select:
+  - { platform: bus_t4, type: standby_mode, name: "Standby mode" }
+  # custom: register: 0x.. + options: {"Label": value, ...}
+
+sensor:          # только чтение
+  - { platform: bus_t4, type: maneuvers_count,       name: "Maneuvers count" }
+  - { platform: bus_t4, type: maintenance_threshold, name: "Maintenance threshold" }
+
+button:          # калибровки и команды
+  - { platform: bus_t4, type: learn_positions,    name: "Learn positions" }
+  - { platform: bus_t4, type: learn_bluebus,      name: "Learn BlueBus devices" }
+  - { platform: bus_t4, type: cancel_maintenance, name: "Cancel maintenance" }
+  - { platform: bus_t4, type: refresh,            name: "Refresh settings" }
+  # step_by_step, stop, open, close, partial_open
+```
+
+Если блок управления не поддерживает параметр, привод отвечает ошибкой и сущность остаётся без значения.
+Проверено на Nice Walky (WLA1): поддерживаются 52 параметра, нет частичных открываний, позиций энкодера,
+замедления вкл/выкл, плавного пуска и входов IN2–IN4.
+
+> Имена сущностей в YAML лучше давать латиницей: ESPHome 2026+ строит object_id из ASCII,
+> кириллические имена одинаковой длины конфликтуют. Локализованные имена можно задать в Home Assistant.
+
 # Текущие возможности компонента
 * Отправка команд: "Открыть", "Стоп", "Закрыть", "Частичное открытие", "Пошагово (SBS)" и других через кнопки.
 * Отправка произвольных HEX команд через службу "raw_command". Команда должна быть сформирована заранее или где-то подсмотрена. Разделителями байт могут быть точки или пробелы. Пример: 55 0c 00 03 00 81 01 05 86 01 82 01 64 e6 0c или 55.0D.00.FF.00.66.08.06.97.00.04.99.00.00.9D.0D
