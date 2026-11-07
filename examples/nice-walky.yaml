@@ -1,0 +1,297 @@
+substitutions:
+  name: nice-bust4
+  device_description: "Nice Walky gate"
+  # компонент с настройками привода (ветка settings)
+  external_components_source: github://srepenko/Nice_BusT4@main
+
+esphome:
+  name: ${name}
+  comment: ${device_description}
+  platformio_options:
+    board_build.f_flash: 40000000L
+    board_build.flash_mode: dio
+    board_build.flash_size: 4MB
+
+esp32:
+  variant: ESP32C3
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+external_components:
+  - source: ${external_components_source}
+    refresh: 0s
+
+logger:
+  level: DEBUG
+  baud_rate: 0
+
+ota:
+  - platform: esphome
+    password: !secret esphome_ota_key
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Gate Fallback Hotspot"
+    password: !secret ap_password
+
+captive_portal:
+
+web_server:
+  version: 3
+
+status_led:
+  pin:
+    number: GPIO8
+    inverted: true
+
+api:
+  encryption:
+    key: !secret esphome_encryption_key
+  services:
+    # отправка hex-команды на привод (для экспериментов)
+    - service: raw_command
+      variables:
+        raw_cmd: string
+      then:
+        lambda: |-
+          nice_cover -> NiceBusT4::send_raw_cmd(raw_cmd);
+    - service: send_inf_command
+      variables:
+        to_addr: string
+        whose: string
+        command: string
+        type_command: string
+        next_data: string
+        data_on: bool
+        data_command: string
+      then:
+        lambda: |-
+          nice_cover -> NiceBusT4::send_inf_cmd(to_addr, whose, command, type_command, next_data, data_on, data_command);
+
+# ---------------- Ворота ----------------
+cover:
+  - platform: bus_t4
+    name: "Nice Cover"
+    device_class: gate
+    id: nice_cover
+    tx_pin: 21   # C3
+    rx_pin: 20   # C3
+    params_interval: 5min   # как часто перечитывать настройки из привода
+
+# ---------------- Функции (вкл/выкл) ----------------
+switch:
+  - platform: bus_t4
+    type: auto_close
+    name: "Auto close"
+    icon: mdi:gate-arrow-left
+  - platform: bus_t4
+    type: photo_close
+    name: "Close after photo"
+    icon: mdi:motion-sensor
+  - platform: bus_t4
+    type: always_close
+    name: "Always close"
+    icon: mdi:gate-alert
+  - platform: bus_t4
+    type: standby
+    name: "Standby"
+    icon: mdi:power-sleep
+    entity_category: config
+  - platform: bus_t4
+    type: preflash
+    name: "Pre-flashing"
+    icon: mdi:alarm-light
+    entity_category: config
+  - platform: bus_t4
+    type: operator_block
+    name: "Operator block"
+    icon: mdi:lock
+  - platform: bus_t4
+    type: key_lock
+    name: "Key lock"
+    icon: mdi:lock-outline
+    entity_category: config
+
+# ---------------- Параметры (числа) ----------------
+number:
+  - platform: bus_t4
+    type: pause_time
+    name: "Pause time"
+    icon: mdi:timer-sand
+    mode: box
+  - platform: bus_t4
+    type: photo_close_time
+    name: "Close after photo time"
+    icon: mdi:timer-outline
+    mode: box
+    entity_category: config
+  - platform: bus_t4
+    type: always_close_time
+    name: "Always close time"
+    icon: mdi:timer-outline
+    mode: box
+    entity_category: config
+  - platform: bus_t4
+    type: standby_time
+    name: "Standby time"
+    mode: box
+    entity_category: config
+  - platform: bus_t4
+    type: preflash_open_time
+    name: "Pre-flashing open time"
+    mode: box
+    entity_category: config
+  - platform: bus_t4
+    type: preflash_close_time
+    name: "Pre-flashing close time"
+    mode: box
+    entity_category: config
+  - platform: bus_t4
+    type: lamp_time
+    name: "Courtesy light time"
+    icon: mdi:lightbulb-on-outline
+    mode: box
+    entity_category: config
+  - platform: bus_t4
+    type: speed_open
+    name: "Speed open"
+    icon: mdi:speedometer
+    entity_category: config
+  - platform: bus_t4
+    type: speed_close
+    name: "Speed close"
+    icon: mdi:speedometer
+    entity_category: config
+  - platform: bus_t4
+    type: speed_slow_open
+    name: "Speed slow open"
+    icon: mdi:speedometer-slow
+    entity_category: config
+  - platform: bus_t4
+    type: speed_slow_close
+    name: "Speed slow close"
+    icon: mdi:speedometer-slow
+    entity_category: config
+  - platform: bus_t4
+    type: force_open
+    name: "Force open"
+    icon: mdi:arm-flex
+    entity_category: config
+  - platform: bus_t4
+    type: force_close
+    name: "Force close"
+    icon: mdi:arm-flex
+    entity_category: config
+  - platform: bus_t4
+    type: leaf_delay_open
+    name: "Leaf delay open"
+    mode: box
+    entity_category: config
+  - platform: bus_t4
+    type: leaf_delay_close
+    name: "Leaf delay close"
+    mode: box
+    entity_category: config
+  - platform: bus_t4
+    type: reverse_time
+    name: "Reverse time"
+    mode: box
+    entity_category: config
+
+# ---------------- Режимы ----------------
+select:
+  - platform: bus_t4
+    type: standby_mode
+    name: "Standby mode"
+    entity_category: config
+
+# ---------------- Обслуживание ----------------
+sensor:
+  - platform: bus_t4
+    type: maneuvers_count
+    name: "Maneuvers count"
+    icon: mdi:counter
+  - platform: bus_t4
+    type: maintenance_threshold
+    name: "Maintenance threshold"
+    icon: mdi:wrench-clock
+
+# ---------------- Калибровки и команды ----------------
+button:
+  - platform: bus_t4
+    type: learn_positions
+    name: "Learn positions"
+    icon: mdi:ruler
+    entity_category: config
+  - platform: bus_t4
+    type: learn_bluebus
+    name: "Learn BlueBus devices"
+    icon: mdi:access-point-network
+    entity_category: config
+  - platform: bus_t4
+    type: cancel_maintenance
+    name: "Cancel maintenance"
+    icon: mdi:wrench-check
+    entity_category: config
+  - platform: bus_t4
+    type: refresh
+    name: "Refresh settings"
+    icon: mdi:refresh
+    entity_category: diagnostic
+  - platform: bus_t4
+    type: step_by_step
+    name: "Step by step"
+    icon: mdi:gate-arrow-right
+  - platform: bus_t4
+    type: partial_open
+    name: "Partial open"
+    icon: mdi:gate-open
+  - platform: template
+    name: "Inputs status"
+    id: in_stat
+    entity_category: diagnostic
+    on_press:
+      lambda: |-
+        nice_cover -> NiceBusT4::send_raw_cmd("55.0D.00.03.00.66.08.06.6B.04.D0.99.00.00.4D.0D");
+
+# ---------------- Радиопульты ----------------
+remote_receiver:
+  pin:
+    number: GPIO2
+    inverted: True
+  dump:
+    - rc_switch
+  tolerance: 60%
+  filter: 4us
+  idle: 4ms
+binary_sensor:
+  - platform: remote_receiver
+    name: RF Button 1
+    rc_switch_raw: 
+      protocol: 6
+      code: "000000000001010100010100"
+    filters:
+      - delayed_off: 250ms
+    on_press:
+      then:
+        cover.open: nice_cover
+  - platform: remote_receiver
+    name: RF Button 2
+    rc_switch_raw: 
+      protocol: 6
+      code: "000000000001010100010101"
+    filters:
+      - delayed_off: 250ms
+    on_press:
+      then:
+        cover.close: nice_cover
+  - platform: remote_receiver
+    name: RF Button 3
+    rc_switch_raw: 
+      protocol: 6
+      code: "000000000001010100010111"
+    filters:
+      - delayed_off: 250ms
